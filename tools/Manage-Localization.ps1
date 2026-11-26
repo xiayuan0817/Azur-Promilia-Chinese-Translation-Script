@@ -139,6 +139,8 @@ function Get-FriendlyFailure([string]$Detail) {
         'payload 不存在|误下载了 GitHub 源码包' { return '未处理：缺少 payload 替换资源，请下载 Releases 完整包。' }
         '已取消管理员权限|canceled by the user' { return '未完成：已取消管理员权限授权。' }
         'rollback.*(damaged|verification failed)|未能回滚|回滚失败' { return '失败：自动回滚失败，请保留备份。' }
+        '已修改目标资源段|分段补丁信息|目标资源段匹配不唯一' { return '未处理：游戏热更已修改目标汉化段，请等待新版汉化补丁。' }
+        '清单 MD5 校验失败|清单包名或版本不匹配|YooAsset 清单' { return '未处理：游戏资源清单校验不通过。' }
         'Unknown launcher version|版本不匹配|基线不匹配|版本不符' { return '未处理：文件版本与本补丁不匹配。' }
         'Bad canonical backup|Verified original backup required|Backup verification failed|原版备份|缺少原版备份' { return '失败：原版备份缺失或校验不通过。' }
         'Bad payload|包文件损坏|载荷|补丁包文件缺失' { return '未处理：补丁文件缺失或损坏，请完整解压后重试。' }
@@ -299,23 +301,32 @@ function Get-ItemSummary($Definition, [string]$Root) {
         $plan = $gamePlans[$Definition.Id]
         $dataName = if ($Definition.Id -eq 'tw_game') { 'AzurPromilia_Data' } else { 'AzurPromiliaJP_Data' }
         $dataRoot = Install-Child $Root $dataName
-        foreach ($guard in $plan.readonly_files) {
+        $ctx = Resolve-GameDeploymentContext $plan $dataRoot
+        foreach ($guard in $ctx.ActiveGuards) {
             $file = Install-Child $dataRoot $guard.relative_path
             if (-not [IO.File]::Exists($file)) { return '缺少文件' }
             if ((Sha $file) -ne $guard.sha256) { return '版本不匹配' }
         }
         $original = 0; $localized = 0
-        foreach ($entry in $plan.files) {
-            $file = Install-Child $dataRoot $entry.relative_path
+        foreach ($item in $ctx.Items) {
+            $file = Install-Child $dataRoot $item.TargetRelativePath
             if (-not [IO.File]::Exists($file)) { return '缺少文件' }
-            if ((Get-Item -LiteralPath $file).Length -ne $entry.size) { return '版本不匹配' }
-            $hash = Sha $file
-            if ($hash -eq $entry.source_sha256) { $original++ }
-            elseif ($hash -eq $entry.target_sha256) { $localized++ }
-            else { return '版本不匹配' }
+            if ($item.Mode -eq 'ExactFile') {
+                $entry = $item.Entry
+                if ((Get-Item -LiteralPath $file).Length -ne $entry.size) { return '版本不匹配' }
+                $hash = Sha $file
+                if ($hash -eq $entry.source_sha256) { $original++ }
+                elseif ($hash -eq $entry.target_sha256) { $localized++ }
+                else { return '版本不匹配' }
+            } else {
+                $relState = Get-RelocatedPackState $file $item
+                if ($relState -eq 'Original') { $original++ }
+                elseif ($relState -eq 'Localized') { $localized++ }
+                else { return '版本不匹配' }
+            }
         }
-        if ($original -eq @($plan.files).Count) { return '原版' }
-        if ($localized -eq @($plan.files).Count) { return '已汉化' }
+        if ($original -eq @($ctx.Items).Count) { return '原版' }
+        if ($localized -eq @($ctx.Items).Count) { return '已汉化' }
         return '部分汉化'
     } catch { return '无法读取' }
 }
@@ -404,30 +415,66 @@ function Show-FileStatus($Items, [hashtable]$Locations) {
         $backupName = if ($d.Id -eq 'tw_game') { '.zhcn-crc-readonly-3221745-backup' } else { '.zhcn-jp-crc-readonly-3219598-backup' }
         $backupRoot = Join-Path $root $backupName
 
-        $bkTotal = @($plan.files).Count
+        $ctx = $null
+        try {
+            $ctx = Resolve-GameDeploymentContext $plan $dataRoot
+        } catch {
+            Write-Host ('  热更清单解析失败：' + $_.Exception.Message) -ForegroundColor Yellow
+            $fallbackItems = @($plan.files | ForEach-Object {
+                [PSCustomObject]@{ Mode = 'ExactFile'; TargetRelativePath = $_.relative_path; PayloadRelativePath = $_.relative_path; Entry = $_; ManifestVersion = $null }
+            })
+            $ctx = [PSCustomObject]@{ ActiveGuards = @($plan.readonly_files); Items = $fallbackItems; HotfixVersions = @() }
+        }
+
+        $bkTotal = @($ctx.Items).Count
         $bkOk = 0; $bkBad = 0
-        foreach ($e in $plan.files) {
+        foreach ($item in $ctx.Items) {
             $state = '无法读取'
             try {
-                $file = Install-Child $dataRoot $e.relative_path
+                $file = Install-Child $dataRoot $item.TargetRelativePath
                 if (-not [IO.File]::Exists($file)) { $state = '缺少文件' }
-                else {
+                elseif ($item.Mode -eq 'ExactFile') {
+                    $e = $item.Entry
                     $hash = Sha $file
                     if ($hash -eq $e.target_sha256) { $state = '已汉化' }
                     elseif ($hash -eq $e.source_sha256) { $state = '原版' }
                     else { $state = '版本不匹配' }
+                } else {
+                    $relState = Get-RelocatedPackState $file $item
+                    if ($relState -eq 'Localized') { $state = ('已汉化（热更 ' + $item.ManifestVersion + '）') }
+                    elseif ($relState -eq 'Original') { $state = ('原版（热更 ' + $item.ManifestVersion + '）') }
+                    else { $state = '版本不匹配' }
                 }
             } catch {}
-            Write-Host ('  {0}  {1}' -f $state, $e.relative_path)
+            Write-Host ('  {0}  {1}' -f $state, $item.TargetRelativePath)
 
             try {
-                $bkFile = Install-Child $backupRoot $e.relative_path
-                if ([IO.File]::Exists($bkFile)) {
-                    if ((Sha $bkFile) -eq $e.source_sha256) { $bkOk++ } else { $bkBad++ }
+                $bkFile = Install-Child $backupRoot $item.TargetRelativePath
+                if ($item.Mode -eq 'ExactFile') {
+                    if ([IO.File]::Exists($bkFile)) {
+                        if ((Sha $bkFile) -eq $item.Entry.source_sha256) { $bkOk++ } else { $bkBad++ }
+                    }
+                } else {
+                    if ([IO.File]::Exists($bkFile)) {
+                        try {
+                            if ((Get-RelocatedPackState $bkFile $item) -eq 'Original') { $bkOk++ } else { $bkBad++ }
+                        } catch { $bkBad++ }
+                    } else {
+                        $allLegacyPresent = $true
+                        $allLegacyOk = $true
+                        foreach ($be in $item.BaselineEntries) {
+                            $legacyBk = Install-Child $backupRoot $be.relative_path
+                            if (-not [IO.File]::Exists($legacyBk)) { $allLegacyPresent = $false; break }
+                            if ((Sha $legacyBk) -ne $be.source_sha256) { $allLegacyOk = $false }
+                        }
+                        if ($allLegacyPresent) {
+                            if ($allLegacyOk) { $bkOk++ } else { $bkBad++ }
+                        }
+                    }
                 }
             } catch { $bkBad++ }
         }
-        foreach ($e in $plan.readonly_files) {
+        foreach ($e in $ctx.ActiveGuards) {
             $state = '无法读取'
             try {
                 $file = Install-Child $dataRoot $e.relative_path

@@ -99,12 +99,18 @@ def pack_str(s: str) -> bytes:
     return struct.pack('<H', len(b)) + b
 
 
-def build_synthetic_manifest(pack_name: str, segs_data: list[bytes]) -> tuple[bytes, bytes]:
+def build_synthetic_manifest(
+    pack_name: str,
+    segs_data: list[bytes],
+    package: str = 'DefaultPackage',
+    version: str = '100',
+    bundle_indices: list[int] | None = None,
+) -> tuple[bytes, bytes]:
     buf = bytearray()
     buf += struct.pack('<I', crcchain.MAGIC)
     buf += pack_str('2.3.1')
     buf += struct.pack('<3Bii', 1, 0, 0, 1, 0)
-    for s in ('Builtin', 'DefaultPackage', '100', 'test'):
+    for s in ('Builtin', package, version, 'test'):
         buf += pack_str(s)
     # assets (0)
     buf += struct.pack('<i', 0)
@@ -115,7 +121,8 @@ def build_synthetic_manifest(pack_name: str, segs_data: list[bytes]) -> tuple[by
     offset = 0
     pack_bytes = bytearray()
     for i, sd in enumerate(segs_data):
-        buf += struct.pack('<qIiiiiiiqIi4B', len(sd), crc32_u32(sd), i, 0, 0, 0, 0, 0, offset, 0, i, 0, 0, 0, 0)
+        b_idx = i if bundle_indices is None else bundle_indices[i]
+        buf += struct.pack('<qIiiiiiiqIi4B', len(sd), crc32_u32(sd), b_idx, 0, 0, 0, 0, 0, offset, 0, b_idx, 0, 0, 0, 0)
         pack_bytes.extend(sd)
         offset += len(sd)
     # bundle_reference_pool (0)
@@ -821,6 +828,267 @@ class TestPoolCapacity(unittest.TestCase):
 
         with self.assertRaises(ValueError):
             pool_capacity.choose_max_prime_capacity(hashes, 100000, min_padding=4, min_cap=65521)
+
+
+class TestHotfixManifestRelocation(unittest.TestCase):
+    def _write_manifest(self, data_root: Path, pkg: str, ver: str, pack_name: str,
+                        segs_data: list[bytes], bundle_indices: list[int]) -> bytes:
+        m_bytes, p_bytes = build_synthetic_manifest(
+            pack_name, segs_data, package=pkg, version=ver, bundle_indices=bundle_indices,
+        )
+        m_dir = data_root / '.res' / pkg / 'ManifestFiles'
+        m_dir.mkdir(parents=True, exist_ok=True)
+        (m_dir / f'0release_{pkg}_{ver}.bytes').write_bytes(m_bytes)
+        (m_dir / f'0release_{pkg}_{ver}.hash').write_bytes(
+            hashlib.md5(m_bytes).hexdigest().encode('ascii')
+        )
+        b_dir = data_root / '.res' / pkg / 'BundleFiles'
+        b_dir.mkdir(parents=True, exist_ok=True)
+        (b_dir / pack_name).write_bytes(p_bytes)
+        return p_bytes
+
+    def _setup_hotfix_fixture(self, td_path: Path):
+        pack = td_path / 'pack'
+        copy_tool_tree(pack)
+
+        game_root = td_path / 'AzurPromilia_TC_game'
+        data_root = game_root / 'AzurPromilia_Data'
+        data_root.mkdir(parents=True)
+        (game_root / 'AzurPromilia.exe').write_bytes(b'EXE')
+
+        # raw_base_package stays byte-identical across 3221745 -> 3221746
+        rb_orig, rb_targ, rb_segs = make_crc_matched_pair(b'hotfix_rb', (4096,))
+        rb_name = 'rawbasepack.r'
+        self._write_manifest(data_root, 'raw_base_package', '3221745', rb_name, [rb_orig], [12])
+
+        # default_package: seg0 (patched), seg1 (unmodified middle), seg2 (patched)
+        s0_o, s0_t, _ = make_crc_matched_pair(b'hotfix_d0', (2048,))
+        s1_orig = b'UNMODIFIED_MIDDLE_SEGMENT_' + b'A' * 300
+        s1_hotfix = b'UNMODIFIED_MIDDLE_SHORTER' + b'B' * 291  # 10 bytes shorter -> seg2 shifts -10
+        self.assertEqual(len(s1_orig) - len(s1_hotfix), 10)
+        s2_o, s2_t, _ = make_crc_matched_pair(b'hotfix_d2', (1536,))
+
+        old_def_name = 'olddefaultpack.r'
+        new_def_name = 'newdefaultpack.r'
+        old_def_orig = self._write_manifest(
+            data_root, 'default_package', '3221745', old_def_name,
+            [s0_o, s1_orig, s2_o], [10, 11, 12],
+        )
+        old_def_targ = s0_t + s1_orig + s2_t
+        self.assertEqual(len(old_def_targ), len(old_def_orig))
+        self.assertEqual(crc32_u32(old_def_targ), crc32_u32(old_def_orig))
+
+        fp_bytes = b'FOOTPRINT_3221745'
+        for pkg in ('raw_base_package', 'default_package'):
+            fp = data_root / '.res' / pkg / 'ManifestFiles' / 'ApplicationFootPrint.bytes'
+            fp.write_bytes(fp_bytes)
+
+        # Write payload for baseline 3221745
+        rb_rel = f'.res/raw_base_package/BundleFiles/{rb_name}'
+        def_rel = f'.res/default_package/BundleFiles/{old_def_name}'
+        for rel, data in ((rb_rel, rb_targ), (def_rel, old_def_targ)):
+            pp = pack / 'payload' / 'tw_game' / rel
+            pp.parent.mkdir(parents=True, exist_ok=True)
+            pp.write_bytes(data)
+
+        def_segs = [
+            {'bundle_index': 10, 'offset': 0, 'size': len(s0_o), 'crc32': crc32_u32(s0_o)},
+            {'bundle_index': 11, 'offset': len(s0_o), 'size': len(s1_orig), 'crc32': crc32_u32(s1_orig)},
+            {'bundle_index': 12, 'offset': len(s0_o) + len(s1_orig), 'size': len(s2_o), 'crc32': crc32_u32(s2_o)},
+        ]
+        def_patched_segs = [
+            {
+                'bundle_index': 10, 'offset': 0, 'size': len(s0_o),
+                'crc32': crc32_u32(s0_o), 'target_sha256': sha256_bytes(s0_t),
+            },
+            {
+                'bundle_index': 12, 'offset': len(s0_o) + len(s1_orig), 'size': len(s2_o),
+                'crc32': crc32_u32(s2_o), 'target_sha256': sha256_bytes(s2_t),
+            },
+        ]
+
+        ro_files = []
+        for pkg in ('raw_base_package', 'default_package'):
+            for suffix in ('bytes', 'hash'):
+                rel = f'.res/{pkg}/ManifestFiles/0release_{pkg}_3221745.{suffix}'
+                ro_files.append({'relative_path': rel, 'sha256': sha256_bytes((data_root / rel).read_bytes())})
+            fp_rel = f'.res/{pkg}/ManifestFiles/ApplicationFootPrint.bytes'
+            ro_files.append({'relative_path': fp_rel, 'sha256': sha256_bytes(fp_bytes)})
+
+        plan = {
+            'format': 1,
+            'region': 'tw',
+            'resource_version': '3221745',
+            'files': [
+                {
+                    'relative_path': rb_rel,
+                    'source_sha256': sha256_bytes(rb_orig),
+                    'target_sha256': sha256_bytes(rb_targ),
+                    'size': len(rb_orig),
+                    'crc32': crc32_u32(rb_orig),
+                    'segments': [{'bundle_index': 12, 'offset': 0, 'size': len(rb_orig), 'crc32': crc32_u32(rb_orig)}],
+                    'patched_segments': [{
+                        'bundle_index': 12, 'offset': 0, 'size': len(rb_orig),
+                        'crc32': crc32_u32(rb_orig), 'target_sha256': sha256_bytes(rb_targ),
+                    }],
+                },
+                {
+                    'relative_path': def_rel,
+                    'source_sha256': sha256_bytes(old_def_orig),
+                    'target_sha256': sha256_bytes(old_def_targ),
+                    'size': len(old_def_orig),
+                    'crc32': crc32_u32(old_def_orig),
+                    'segments': def_segs,
+                    'patched_segments': def_patched_segs,
+                },
+            ],
+            'readonly_files': ro_files,
+            'runtime_login_verified': False,
+        }
+        (pack / 'tools' / 'tw-deployment.json').write_text(json.dumps(plan, indent=2), 'utf-8')
+        return {
+            'pack': pack,
+            'game_root': game_root,
+            'data_root': data_root,
+            'script': pack / 'tools' / 'Apply-CRCZH.ps1',
+            'mgr': pack / 'tools' / 'Manage-Localization.ps1',
+            'rb_name': rb_name,
+            'rb_orig': rb_orig,
+            'rb_targ': rb_targ,
+            'old_def_name': old_def_name,
+            'new_def_name': new_def_name,
+            's0_o': s0_o,
+            's0_t': s0_t,
+            's1_hotfix': s1_hotfix,
+            's2_o': s2_o,
+            's2_t': s2_t,
+        }
+
+    def _apply_hotfix_3221746(self, fx: dict, carry_localized: bool = False):
+        data_root = fx['data_root']
+        # raw_base_package keeps BOTH 3221745 and 3221746 manifests
+        self._write_manifest(
+            data_root, 'raw_base_package', '3221746', fx['rb_name'],
+            [fx['rb_targ'] if carry_localized else fx['rb_orig']], [12],
+        )
+        # default_package removes 3221745 manifest + old pack, writes 3221746 + renamed pack
+        for suffix in ('bytes', 'hash'):
+            old_m = data_root / '.res/default_package/ManifestFiles' / f'0release_default_package_3221745.{suffix}'
+            if old_m.exists():
+                old_m.unlink()
+        old_pack = data_root / '.res/default_package/BundleFiles' / fx['old_def_name']
+        if old_pack.exists():
+            old_pack.unlink()
+
+        segs = [
+            fx['s0_t'] if carry_localized else fx['s0_o'],
+            fx['s1_hotfix'],
+            fx['s2_t'] if carry_localized else fx['s2_o'],
+        ]
+        return self._write_manifest(
+            data_root, 'default_package', '3221746', fx['new_def_name'],
+            segs, [10, 11, 12],
+        )
+
+    def test_hotfix_apply_verify_restore_with_shifted_segment(self):
+        with tempfile.TemporaryDirectory(prefix='azur_hotfix_new_') as td:
+            fx = self._setup_hotfix_fixture(Path(td))
+            new_orig = self._apply_hotfix_3221746(fx, carry_localized=False)
+            new_targ = fx['s0_t'] + fx['s1_hotfix'] + fx['s2_t']
+            new_pack_path = fx['data_root'] / '.res/default_package/BundleFiles' / fx['new_def_name']
+            rb_pack_path = fx['data_root'] / '.res/raw_base_package/BundleFiles' / fx['rb_name']
+
+            p_v0 = run_ps(fx['script'], ['-Action', 'Verify', '-Hint', str(fx['game_root'])])
+            out_v0 = p_v0.stdout.decode('utf-8', 'replace')
+            self.assertEqual(p_v0.returncode, 0, out_v0)
+            self.assertIn('原版 (热更适配 3221746)', out_v0)
+
+            p_app = run_ps(fx['script'], ['-Action', 'Apply', '-Hint', str(fx['game_root'])])
+            self.assertEqual(p_app.returncode, 0, p_app.stdout.decode('utf-8', 'replace'))
+            self.assertEqual(rb_pack_path.read_bytes(), fx['rb_targ'])
+            self.assertEqual(new_pack_path.read_bytes(), new_targ)
+
+            p_v1 = run_ps(fx['script'], ['-Action', 'Verify', '-Hint', str(fx['game_root'])])
+            out_v1 = p_v1.stdout.decode('utf-8', 'replace')
+            self.assertEqual(p_v1.returncode, 0, out_v1)
+            self.assertIn('汉化 (热更适配 3221746)', out_v1)
+
+            # Check Manage-Localization.ps1 interactive summary + option 5 status
+            (fx['pack'] / 'tools' / '安装路径.json').write_text(json.dumps({
+                'tw_game': str(fx['game_root']), 'jp_game': '', 'tw_launcher': '', 'jp_launcher': '',
+            }, ensure_ascii=False), 'utf-8')
+            p_menu = subprocess.run(
+                ['powershell.exe', '-NoProfile', '-ExecutionPolicy', 'Bypass',
+                 '-File', str(fx['mgr']), '-Action', 'Menu'],
+                input=b'5\r\nQ\r\n', stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                cwd=str(fx['pack']), timeout=60,
+            )
+            out_menu = p_menu.stdout.decode('utf-8', 'replace')
+            self.assertEqual(p_menu.returncode, 0, out_menu)
+            self.assertIn('[台服游戏] 已汉化', out_menu)
+            self.assertIn('已汉化（热更 3221746）', out_menu)
+
+            # Restore works even after payload/ is removed
+            shutil.rmtree(fx['pack'] / 'payload')
+            p_rest = run_ps(fx['script'], ['-Action', 'Restore', '-Hint', str(fx['game_root'])])
+            self.assertEqual(p_rest.returncode, 0, p_rest.stdout.decode('utf-8', 'replace'))
+            self.assertEqual(rb_pack_path.read_bytes(), fx['rb_orig'])
+            self.assertEqual(new_pack_path.read_bytes(), new_orig)
+            self.assertEqual(run_ps(fx['script'], ['-Action', 'Verify', '-Hint', str(fx['game_root'])]).returncode, 0)
+
+    def test_hotfix_after_prior_apply_verify_and_restore_from_legacy_backup(self):
+        with tempfile.TemporaryDirectory(prefix='azur_hotfix_prior_') as td:
+            fx = self._setup_hotfix_fixture(Path(td))
+            # Apply on 3221745 first -> creates legacy backup under old_def_name
+            self.assertEqual(run_ps(fx['script'], ['-Action', 'Apply', '-Hint', str(fx['game_root'])]).returncode, 0)
+            self._apply_hotfix_3221746(fx, carry_localized=True)
+            new_pack_path = fx['data_root'] / '.res/default_package/BundleFiles' / fx['new_def_name']
+            expected_orig = fx['s0_o'] + fx['s1_hotfix'] + fx['s2_o']
+
+            p_v = run_ps(fx['script'], ['-Action', 'Verify', '-Hint', str(fx['game_root'])])
+            out_v = p_v.stdout.decode('utf-8', 'replace')
+            self.assertEqual(p_v.returncode, 0, out_v)
+            self.assertIn('汉化 (热更适配 3221746)', out_v)
+
+            p_idem = run_ps(fx['script'], ['-Action', 'Apply', '-Hint', str(fx['game_root'])])
+            self.assertEqual(p_idem.returncode, 0, p_idem.stdout.decode('utf-8', 'replace'))
+            self.assertIn('无需修改', p_idem.stdout.decode('utf-8', 'replace'))
+
+            shutil.rmtree(fx['pack'] / 'payload')
+            p_rest = run_ps(fx['script'], ['-Action', 'Restore', '-Hint', str(fx['game_root'])])
+            self.assertEqual(p_rest.returncode, 0, p_rest.stdout.decode('utf-8', 'replace'))
+            self.assertEqual(new_pack_path.read_bytes(), expected_orig)
+            p_v2 = run_ps(fx['script'], ['-Action', 'Verify', '-Hint', str(fx['game_root'])])
+            self.assertEqual(p_v2.returncode, 0, p_v2.stdout.decode('utf-8', 'replace'))
+            self.assertIn('原版 (热更适配 3221746)', p_v2.stdout.decode('utf-8', 'replace'))
+
+    def test_hotfix_rejects_modified_target_segment_and_tampered_manifest_hash(self):
+        with tempfile.TemporaryDirectory(prefix='azur_hotfix_rej_') as td:
+            fx = self._setup_hotfix_fixture(Path(td))
+            self._apply_hotfix_3221746(fx, carry_localized=False)
+
+            # (a) Tamper .hash MD5 -> Verify & Apply must fail
+            hash_file = fx['data_root'] / '.res/default_package/ManifestFiles/0release_default_package_3221746.hash'
+            saved_hash = hash_file.read_bytes()
+            hash_file.write_bytes(b'0' * 32)
+            p_bad_hash = run_ps(fx['script'], ['-Action', 'Apply', '-Hint', str(fx['game_root'])])
+            self.assertEqual(p_bad_hash.returncode, 1)
+            self.assertIn('MD5', p_bad_hash.stdout.decode('utf-8', 'replace'))
+            self.assertFalse((fx['game_root'] / '.zhcn-crc-readonly-3221745-backup').exists())
+            hash_file.write_bytes(saved_hash)
+
+            # (b) Hotfix modifies target patched segment s2 -> must refuse cleanly
+            modified_s2 = b'CHANGED_BY_MAJOR_UPDATE_' + b'Z' * (len(fx['s2_o']) - 24)
+            new_pack = self._write_manifest(
+                fx['data_root'], 'default_package', '3221746', fx['new_def_name'],
+                [fx['s0_o'], fx['s1_hotfix'], modified_s2], [10, 11, 12],
+            )
+            p_mod = run_ps(fx['script'], ['-Action', 'Apply', '-Hint', str(fx['game_root'])])
+            out_mod = p_mod.stdout.decode('utf-8', 'replace')
+            self.assertEqual(p_mod.returncode, 1)
+            self.assertIn('已修改目标资源段', out_mod)
+            self.assertEqual((fx['data_root'] / '.res/default_package/BundleFiles' / fx['new_def_name']).read_bytes(), new_pack)
+            self.assertFalse((fx['game_root'] / '.zhcn-crc-readonly-3221745-backup').exists())
 
 
 if __name__ == '__main__':

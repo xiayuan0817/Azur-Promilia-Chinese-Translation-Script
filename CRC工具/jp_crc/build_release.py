@@ -95,7 +95,19 @@ def main():
                 refs.append({'manifest': mr, 'segments_verified': len(segs), 'original_size_and_crc_verified': True, 'candidate_size_and_crc_verified': True})
             assert primary is not None, ('no original manifest reference', rel)
             pk, segs = primary
-            e.update(crc32=pk['crc'], segments=segs)
+            patched_segs = [
+                {
+                    'bundle_index': s['bundle_index'],
+                    'offset': s['offset'],
+                    'size': s['size'],
+                    'crc32': s['crc32'],
+                    'source_sha256': sha(src[s['offset']:s['offset'] + s['size']]),
+                    'target_sha256': sha(target[s['offset']:s['offset'] + s['size']]),
+                }
+                for s in segs
+                if src[s['offset']:s['offset'] + s['size']] != target[s['offset']:s['offset'] + s['size']]
+            ]
+            e.update(crc32=pk['crc'], segments=segs, patched_segments=patched_segs)
             assert (zlib.crc32(target) & 0xffffffff) == (zlib.crc32(src) & 0xffffffff) == pk['crc']
             pack_report.append({'path': rel, 'original_size': len(src), 'candidate_size': len(target), 'crc32': f'{pk["crc"]:08x}', 'segments_verified': len(segs), 'references': refs, 'all_passed': True})
         dest = OUT / 'payload/jp_game' / rel

@@ -17,6 +17,15 @@
           "size": 37322073,
           "crc32": 1248061500
         }
+      ],
+      "patched_segments": [
+        {
+          "bundle_index": 0,
+          "offset": 0,
+          "size": 37322073,
+          "crc32": 1248061500,
+          "target_sha256": "620cb1c8dfa18da467cc155577f8d03df0ca3a3617e2de8af4fe3ee7d2a94c7f"
+        }
       ]
     },
     {
@@ -31,6 +40,15 @@
           "offset": 0,
           "size": 138942949,
           "crc32": 299102430
+        }
+      ],
+      "patched_segments": [
+        {
+          "bundle_index": 12,
+          "offset": 0,
+          "size": 138942949,
+          "crc32": 299102430,
+          "target_sha256": "ae50e943e04056132880f116fa6acf872fbc79e6244f153fa85634d7f5d7546d"
         }
       ]
     },
@@ -311,6 +329,43 @@
           "size": 10242,
           "crc32": 2733617892
         }
+      ],
+      "patched_segments": [
+        {
+          "bundle_index": 369096,
+          "offset": 0,
+          "size": 3152033,
+          "crc32": 3103164524,
+          "target_sha256": "48d629b0c51961bfb8c19ff1822ac0abb0b34e1f6e44d1e73fda8484579f2bd2"
+        },
+        {
+          "bundle_index": 369103,
+          "offset": 3431196,
+          "size": 113035,
+          "crc32": 715973257,
+          "target_sha256": "b4796935337d59f41504925529b64f4d9f898b3ee10d0701d389a982e0f07c17"
+        },
+        {
+          "bundle_index": 369107,
+          "offset": 3551415,
+          "size": 111857,
+          "crc32": 2000674073,
+          "target_sha256": "edabc80f8bae13879ff3a582429feb01f05a678ef060fa065022de3cc2983f7f"
+        },
+        {
+          "bundle_index": 369110,
+          "offset": 3670444,
+          "size": 104836,
+          "crc32": 3169699107,
+          "target_sha256": "5e35f7c780c04ff21c9fcc98ec1dedc359c106c1ae47d2200220c915dc3001b0"
+        },
+        {
+          "bundle_index": 369116,
+          "offset": 3807673,
+          "size": 67745,
+          "crc32": 4214374141,
+          "target_sha256": "d61e179eae3d68ba700dbb96abbe29f3bbe43634cfb034c778003f2e7813c1fe"
+        }
       ]
     },
     {
@@ -325,6 +380,15 @@
           "offset": 0,
           "size": 3114015,
           "crc32": 3020543875
+        }
+      ],
+      "patched_segments": [
+        {
+          "bundle_index": 342615,
+          "offset": 0,
+          "size": 3114015,
+          "crc32": 3020543875,
+          "target_sha256": "0b9e1170f8aa432dc4fd12d2df4c6ce93ab94956badd919343542c7a9faacdfc"
         }
       ]
     },
@@ -341,6 +405,15 @@
           "size": 6612549,
           "crc32": 119223392
         }
+      ],
+      "patched_segments": [
+        {
+          "bundle_index": 342617,
+          "offset": 0,
+          "size": 6612549,
+          "crc32": 119223392,
+          "target_sha256": "e68c5a89e2e7f7f15d9af221efcbdd180c3ab0286d7530a70b2e4a17154bb111"
+        }
       ]
     },
     {
@@ -356,6 +429,15 @@
           "size": 6676697,
           "crc32": 894877089
         }
+      ],
+      "patched_segments": [
+        {
+          "bundle_index": 342625,
+          "offset": 0,
+          "size": 6676697,
+          "crc32": 894877089,
+          "target_sha256": "3c41ba87a94b8af3672ce3d97a0281758b8c737d07f69ee701c2445125e2d653"
+        }
       ]
     },
     {
@@ -370,6 +452,15 @@
           "offset": 0,
           "size": 65740185,
           "crc32": 2455484288
+        }
+      ],
+      "patched_segments": [
+        {
+          "bundle_index": 1,
+          "offset": 0,
+          "size": 65740185,
+          "crc32": 2455484288,
+          "target_sha256": "0ee7a720a92c3ca9924c128c63beaa83b5bd338a6ce50689e3e6a1bb1603e8f9"
         }
       ]
     },

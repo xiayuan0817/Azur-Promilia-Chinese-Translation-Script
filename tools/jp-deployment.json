@@ -18,6 +18,15 @@
           "size": 133622104,
           "crc32": 4107620273
         }
+      ],
+      "patched_segments": [
+        {
+          "bundle_index": 12,
+          "offset": 0,
+          "size": 133622104,
+          "crc32": 4107620273,
+          "target_sha256": "71716a383a9e629fb67ff237fdf4e85640799bacfe5e49b51303eb009faf8e47"
+        }
       ]
     },
     {
@@ -32,6 +41,15 @@
           "offset": 0,
           "size": 28840170,
           "crc32": 261862204
+        }
+      ],
+      "patched_segments": [
+        {
+          "bundle_index": 0,
+          "offset": 0,
+          "size": 28840170,
+          "crc32": 261862204,
+          "target_sha256": "756df348092dd4669a51e1422d0a6c2caa09eda968a33d48e20599ee254a2c66"
         }
       ]
     },
@@ -54,6 +72,15 @@
           "size": 4517899,
           "crc32": 2901399193
         }
+      ],
+      "patched_segments": [
+        {
+          "bundle_index": 369067,
+          "offset": 0,
+          "size": 4517899,
+          "crc32": 2901399193,
+          "target_sha256": "4e7d11aa325aeb7566600b8e98bf22a4ddbafcb3310bafed1a9e50cf406184a5"
+        }
       ]
     },
     {
@@ -69,6 +96,15 @@
           "size": 4517927,
           "crc32": 1861723330
         }
+      ],
+      "patched_segments": [
+        {
+          "bundle_index": 369068,
+          "offset": 0,
+          "size": 4517927,
+          "crc32": 1861723330,
+          "target_sha256": "8092a24f6a32194e80a9c063984efd6c39fa7898f9b7f984450ab01de3625c3f"
+        }
       ]
     },
     {
@@ -83,6 +119,15 @@
           "offset": 0,
           "size": 4550495,
           "crc32": 262376656
+        }
+      ],
+      "patched_segments": [
+        {
+          "bundle_index": 369069,
+          "offset": 0,
+          "size": 4550495,
+          "crc32": 262376656,
+          "target_sha256": "ad66779022dbe55bc0bcefc612cbbf64d682a869b71ac7b84d908dff5caf52ad"
         }
       ]
     },
@@ -153,6 +198,36 @@
           "size": 27069,
           "crc32": 3257508936
         }
+      ],
+      "patched_segments": [
+        {
+          "bundle_index": 369070,
+          "offset": 0,
+          "size": 4550535,
+          "crc32": 3578054267,
+          "target_sha256": "fe34884335693865cc6709dff70c99618123cd5cd336d74029afeab6cd105d23"
+        },
+        {
+          "bundle_index": 369077,
+          "offset": 4808829,
+          "size": 94388,
+          "crc32": 3744148728,
+          "target_sha256": "9714dd150ae19f65874d09493535ecc61a9bbb839514392dc1219b52b901ccca"
+        },
+        {
+          "bundle_index": 369079,
+          "offset": 4903217,
+          "size": 87117,
+          "crc32": 3306215694,
+          "target_sha256": "61d3ae27e5176ae7a28a2ffa9ecf513fadbb50e02949eec5ecb005135cde8be2"
+        },
+        {
+          "bundle_index": 369081,
+          "offset": 4990334,
+          "size": 91982,
+          "crc32": 4117504242,
+          "target_sha256": "9948c9b562d8acf5b1a9e6a83886b1bfa5abec98ba39ef4c2d146d14183e58bc"
+        }
       ]
     },
     {
@@ -167,6 +242,15 @@
           "offset": 0,
           "size": 11695789,
           "crc32": 2706430645
+        }
+      ],
+      "patched_segments": [
+        {
+          "bundle_index": 369071,
+          "offset": 0,
+          "size": 11695789,
+          "crc32": 2706430645,
+          "target_sha256": "c97b76ae9041ff92f4cb313854e1cb92557a4447ca1ff74d94f5361171f1bc6d"
         }
       ]
     },
@@ -1131,6 +1215,15 @@
           "size": 112509,
           "crc32": 4167398875
         }
+      ],
+      "patched_segments": [
+        {
+          "bundle_index": 369167,
+          "offset": 420062,
+          "size": 83151,
+          "crc32": 1935282860,
+          "target_sha256": "6f94d6168a33884ee17e119fd86e1ea525a14d32b1c3db436ca4b55bbfaf70ec"
+        }
       ]
     },
     {
@@ -2094,6 +2187,15 @@
           "size": 112509,
           "crc32": 4167398875
         }
+      ],
+      "patched_segments": [
+        {
+          "bundle_index": 342724,
+          "offset": 420062,
+          "size": 83420,
+          "crc32": 3679824601,
+          "target_sha256": "9d4916c3696577368c4c8efd2b9c4d10bfcf17291682603142e85cb8f2644368"
+        }
       ]
     },
     {
@@ -2108,6 +2210,15 @@
           "offset": 0,
           "size": 58707878,
           "crc32": 972629294
+        }
+      ],
+      "patched_segments": [
+        {
+          "bundle_index": 1,
+          "offset": 0,
+          "size": 58707878,
+          "crc32": 972629294,
+          "target_sha256": "e186cb46f669fe19bf29dd30ecd21e4ce91bc527497368b7c7211659f16d4984"
         }
       ]
     }

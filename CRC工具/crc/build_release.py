@@ -68,6 +68,18 @@ def main():
             pi = next(i for i, p in enumerate(m['packs']) if C.name_of(p) == name)
             pk = m['packs'][pi]
             segs = [{'bundle_index': bi, 'offset': off, 'size': sz, 'crc32': m['bundles'][bi]['crc']} for bi, off, sz in C.segments(m, pi)]
+            patched_segs = [
+                {
+                    'bundle_index': s['bundle_index'],
+                    'offset': s['offset'],
+                    'size': s['size'],
+                    'crc32': s['crc32'],
+                    'source_sha256': sha(src[s['offset']:s['offset'] + s['size']]),
+                    'target_sha256': sha(target[s['offset']:s['offset'] + s['size']]),
+                }
+                for s in segs
+                if src[s['offset']:s['offset'] + s['size']] != target[s['offset']:s['offset'] + s['size']]
+            ]
             refs = []
             for other, om in manifests.items():
                 if any(C.name_of(p) == name for p in om['packs']):
@@ -76,7 +88,7 @@ def main():
             out = OUT / 'payload/tw_game' / rel
             out.parent.mkdir(exist_ok=True, parents=True)
             shutil.copy2(dest, out)
-            files.append({'relative_path': rel, 'source_sha256': sha(src), 'target_sha256': sha(target), 'size': len(src), 'crc32': pk['crc'], 'segments': segs})
+            files.append({'relative_path': rel, 'source_sha256': sha(src), 'target_sha256': sha(target), 'size': len(src), 'crc32': pk['crc'], 'segments': segs, 'patched_segments': patched_segs})
             rows.append({'file': rel, 'size': len(src), 'crc32': f'{pk["crc"]:08x}', 'segments_verified': len(segs), 'all_manifest_references': refs, 'checks_passed': True})
     rel = 'resources.assets'
     src = (DATA / rel).read_bytes()

@@ -10,8 +10,8 @@
   "files": [
     {
       "path": "README.md",
-      "size": 4577,
-      "sha256": "e6b42317bac41e9815b5819170b81c1efef743b891b99640588bc155eb61046c"
+      "size": 4753,
+      "sha256": "1467b8f7cd60df9666e78ee5f7ed6d454ac4db430180be332e6a4f83d94747ec"
     },
     {
       "path": "payload/jp_game/.res/default_package/BundleFiles/yr49bxop0f3reujfsmyfca.r",
@@ -135,8 +135,8 @@
     },
     {
       "path": "tools/Localization-Common.ps1",
-      "size": 31596,
-      "sha256": "34b0aae4577733c7dc0552325cee6bd74ad4545c7d56f02864372b2a76b664e9"
+      "size": 70311,
+      "sha256": "25dc419d2f1662d213f83f6db40baa4594a44908c34b5b4dadcaf103cd80abcd"
     },
     {
       "path": "tools/Locate-Installations.ps1",
@@ -145,13 +145,13 @@
     },
     {
       "path": "tools/Manage-Localization.ps1",
-      "size": 33160,
-      "sha256": "de80acc4a2d0f925ea7d87bab2e9dd389f34062a363ee74316013c771a2709fe"
+      "size": 36088,
+      "sha256": "ca3eab79f977c0a48f81836f82df5fa03ab8836b3046dc648c41395b2d6a04dc"
     },
     {
       "path": "tools/jp-deployment.json",
-      "size": 55833,
-      "sha256": "0457b522d58aa074287de6a6c0eea865c39c9eebc5fadbad349805e6d246a1fa"
+      "size": 59300,
+      "sha256": "8e1e64751820662bac444fba34bb8870721d3f51d833f07e0e8cdd1835f8f0ec"
     },
     {
       "path": "tools/launcher-deployment.json",
@@ -160,8 +160,8 @@
     },
     {
       "path": "tools/tw-deployment.json",
-      "size": 13942,
-      "sha256": "f95943edf5fe02695fb095c5c1b9fa1c8e30bf18b9cc63a516e77f3ac4e03367"
+      "size": 16820,
+      "sha256": "9111bb60cf022f57cd56894e891fe7a103e85b59d27ed4f07cd04e1c29020e82"
     },
     {
       "path": "双击运行.bat",
