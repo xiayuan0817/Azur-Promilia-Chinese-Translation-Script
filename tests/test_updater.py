@@ -23,8 +23,8 @@ def digest(data):
     return hashlib.sha256(data).hexdigest()
 
 
-def catalog(files):
-    return {'format': 1, 'hash': 'SHA256', 'files': [
+def catalog(files, version='v5'):
+    return {'format': 1, 'hash': 'SHA256', 'version': version, 'files': [
         {'path': name, 'size': len(data), 'sha256': digest(data)}
         for name, data in sorted(files.items())]}
 
@@ -44,7 +44,7 @@ class UpdateTests(unittest.TestCase):
                     'payload/sample.bin': b'new resource', 'tools/z-last.txt': b'new last'}
         for name, data in self.old.items():
             self.put(self.target / name, data)
-        self.put(self.target / 'tools/package-files.json', json.dumps(catalog(self.old)).encode())
+        self.put(self.target / 'tools/package-files.json', json.dumps(catalog(self.old, 'v4')).encode())
         self.put(self.target / 'tools/安装路径.json', '自定义路径'.encode())
         self.put(self.target / 'tools/logs/user.log', b'log retained')
         self.put(self.target / 'my-file.txt', b'unmanaged retained')
@@ -70,7 +70,7 @@ class UpdateTests(unittest.TestCase):
 
     def run_ps(self, body, success=True):
         script = self.base / 'run.ps1'
-        script.write_bytes(('\ufeff$ErrorActionPreference = \'Stop\'\n. ' + quote(UPDATER) + '\n' + body)
+        script.write_bytes(('\ufeff$ErrorActionPreference = \'Stop\'\n[Console]::OutputEncoding = New-Object Text.UTF8Encoding($false)\n. ' + quote(UPDATER) + '\n' + body)
                            .replace('\r\n', '\n').replace('\n', '\r\n').encode('utf-8'))
         result = subprocess.run([str(PS), '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', str(script)],
                                 capture_output=True, timeout=45)
@@ -194,15 +194,77 @@ $release = ConvertFrom-UpstreamPage $html 'v5'
 if ((Get-UpstreamAsset $release).digest -ne ('sha256:' + ('b' * 64))) { throw 'Wrong digest' }
 ''')
 
-    def test_manifest_identifies_current_and_new_builds_without_payload_read(self):
+    def test_release_lookup_disables_progress_overlay_on_every_route(self):
         self.run_ps('''
-function Get-UpstreamRelease { return [pscustomobject]@{tag_name='v5'; manifest_sha256=$script:testHash; assets=@(@{
+$ProgressPreference = 'Continue'
+$script:violations = 0
+$script:requests = 0
+$script:release = [pscustomobject]@{ tag_name='v5'; assets=@([pscustomobject]@{
 name='AzurPromilia-Localization-Full-v5.zip'; size=100; digest=('sha256:' + ('a' * 64));
-browser_download_url=('https://github.com/' + $script:Upstream + '/releases/download/v5/AzurPromilia-Localization-Full-v5.zip') }) } }
-''' + f'$script:testHash = Get-UpdateSha256 {quote(self.target / "tools/package-files.json")}\n'
-                    f"if ((Get-LocalizationUpdateStatus {quote(self.target)}).State -ne 'Current') {{ throw 'Current build missed' }}\n"
-                    "$script:testHash = '0' * 64\n"
-                    f"if ((Get-LocalizationUpdateStatus {quote(self.target)}).State -ne 'Available') {{ throw 'Update missed' }}\n")
+browser_download_url=('https://github.com/' + $script:Upstream + '/releases/download/v5/AzurPromilia-Localization-Full-v5.zip') }) }
+function Invoke-RestMethod {
+    param($Uri)
+    $script:requests++
+    if ($ProgressPreference -ne 'SilentlyContinue') { $script:violations++ }
+    if ($Uri -like '*raw.githubusercontent.com*') {
+        if ($script:route -ne 'index') { throw 'Index unavailable' }
+        return [pscustomobject]@{ format=1; repository=$script:Upstream; manifest_sha256=('b' * 64); release=$script:release }
+    }
+    if ($script:route -eq 'page') { throw 'API rate limit exceeded' }
+    return $script:release
+}
+function Invoke-WebRequest {
+    param($Uri)
+    $script:requests++
+    if ($ProgressPreference -ne 'SilentlyContinue') { $script:violations++ }
+    if ($Uri -like '*/releases/latest') {
+        return @{Content=('/' + $script:Upstream + '/releases/expanded_assets/v5"')}
+    }
+    $html = '<li><a href="/REPO/releases/download/v5/AzurPromilia-Localization-Full-v5.zip">full</a><clipboard-copy value="sha256:HASH"></clipboard-copy></li>'
+    return @{Content=$html.Replace('REPO',$script:Upstream).Replace('HASH',('a' * 64))}
+}
+foreach ($script:route in @('index','api','page')) {
+    $release = Get-UpstreamRelease @{}
+    if ($release.tag_name -ne 'v5') { throw ('Wrong release: ' + $script:route) }
+    if ($ProgressPreference -ne 'Continue') { throw 'Caller preference changed' }
+}
+if ($script:requests -ne 7 -or $script:violations) { throw 'Progress overlay can reach console' }
+''')
+
+    def test_failed_release_lookup_does_not_change_caller_progress_preference(self):
+        self.run_ps('''
+$ProgressPreference = 'Continue'
+$script:violations = 0
+function Invoke-RestMethod {
+    if ($ProgressPreference -ne 'SilentlyContinue') { $script:violations++ }
+    throw 'Request failed'
+}
+function Invoke-WebRequest {
+    if ($ProgressPreference -ne 'SilentlyContinue') { $script:violations++ }
+    throw 'Page unavailable'
+}
+$failed = $false
+try { $null = Get-UpstreamRelease @{} } catch { $failed = $true }
+if (-not $failed -or $script:violations) { throw 'Unexpected lookup state' }
+if ($ProgressPreference -ne 'Continue') { throw 'Caller preference changed' }
+''')
+
+    def test_version_comparison_is_numeric_and_ignores_same_version_hash_changes(self):
+        self.run_ps('''
+function Get-UpstreamRelease { return [pscustomobject]@{tag_name=$script:remoteTag; manifest_sha256=('0' * 64); assets=@(@{
+name=('AzurPromilia-Localization-Full-' + $script:remoteTag + '.zip'); size=100; digest=('sha256:' + ('a' * 64));
+browser_download_url=('https://github.com/' + $script:Upstream + '/releases/download/' + $script:remoteTag + '/AzurPromilia-Localization-Full-' + $script:remoteTag + '.zip') }) } }
+''' + f'$root = {quote(self.target)}\n' + '''
+foreach ($case in @(@('v4','v4','Current'), @('v4','v5','Available'), @('v5','v4','Current'),
+                    @('v5.9','v5.10','Available'), @('v5','v5.0.0','Current'))) {
+    $file = Join-Path $root 'tools/package-files.json'
+    $catalog = Get-Content -LiteralPath $file -Raw | ConvertFrom-Json
+    $catalog.version = $case[0]
+    [IO.File]::WriteAllText($file, ($catalog | ConvertTo-Json -Depth 8))
+    $script:remoteTag = $case[1]
+    if ((Get-LocalizationUpdateStatus $root).State -ne $case[2]) { throw ('Wrong version result: ' + ($case -join ',')) }
+}
+''')
 
     def mock_menu(self, inputs):
         pack = self.base / 'menu pack'
@@ -216,7 +278,7 @@ browser_download_url=('https://github.com/' + $script:Upstream + '/releases/down
         paths['tw_game'] = str(game)
         self.put(pack / 'tools/安装路径.json', json.dumps(paths).encode())
         stub = ("function Get-LocalizationUpdateStatus { Start-Sleep -Seconds 30; [pscustomobject]@{State='Available';Tag='v6'} }\n"
-                "function Invoke-LocalizationUpdate { param($Root) [IO.File]::WriteAllText((Join-Path $Root 'updated.txt'), 'selected') }\n")
+                "function Invoke-LocalizationUpdate { param($Root) [IO.File]::WriteAllText((Join-Path $Root 'updated.txt'), 'selected'); return $true }\n")
         self.put(pack / 'tools/Update-Localization.ps1', ('\ufeff' + stub).encode())
         command = 'cmd.exe /d /s /c ""' + str(pack / '双击运行.bat') + '""'
         start = time.monotonic()
@@ -225,15 +287,20 @@ browser_download_url=('https://github.com/' + $script:Upstream + '/releases/down
         self.assertEqual(result.returncode, 0, result.stdout.decode('utf-8', 'replace'))
         self.assertLess(time.monotonic() - start, 18)
         self.assertIn('U. 检查并更新汉化包', result.stdout.decode('utf-8', 'replace'))
+        self.menu_output = result.stdout.decode('utf-8', 'replace')
         return pack
 
-    def test_slow_background_check_does_not_block_menu_or_exit(self):
+    def test_redirected_input_skips_check_without_consuming_menu_choice(self):
         pack = self.mock_menu(['Q'])
         self.assertFalse((pack / 'updated.txt').exists())
+        self.assertEqual(self.menu_output.count('1. 全部汉化'), 1)
+        self.assertEqual(self.menu_output.count('开服后若登录异常请还原文件，此脚本未进行反作弊验证'), 1)
+        self.assertNotIn('上游版本已检查', self.menu_output)
 
     def test_update_menu_choice_runs_updater(self):
-        pack = self.mock_menu(['U'])
+        pack = self.mock_menu(['U', 'Q'])
         self.assertEqual((pack / 'updated.txt').read_text(), 'selected')
+        self.assertEqual(self.menu_output.count('1. 全部汉化'), 2)
 
     def test_complete_update_validates_download_and_cleans_temporary_files(self):
         archive = self.package()
@@ -248,18 +315,83 @@ function Invoke-WebRequest { param([string]$OutFile) [IO.File]::Copy($script:fix
         self.assertFalse((self.target / 'tools/.update.lock').exists())
         self.assertFalse(list(self.base.glob('.azur-update-*')))
 
-    def test_background_update_notice_is_received_and_job_removed(self):
-        self.run_ps(f'$menuFile = {quote(ROOT / "tools/Manage-Localization.ps1")}\n' + '''
+    def menu_functions(self):
+        return f'$menuFile = {quote(ROOT / "tools/Manage-Localization.ps1")}\n' + '''
 $tokens = $null; $errors = $null
 $ast = [System.Management.Automation.Language.Parser]::ParseFile($menuFile, [ref]$tokens, [ref]$errors)
 $functions = $ast.FindAll({ param($node) $node -is [System.Management.Automation.Language.FunctionDefinitionAst] -and
-$node.Name -in @('Stop-PackageUpdateCheck', 'Receive-PackageUpdateNotice') }, $false)
+$node.Name -in @('Start-PackageUpdateCheck', 'Stop-PackageUpdateCheck', 'Receive-PackageUpdateNotice',
+'Test-UpdateSkipRequested', 'Wait-PackageUpdateCheck') }, $false)
 foreach ($function in $functions) { Invoke-Expression $function.Extent.Text }
-$script:PackageUpdateJob = Start-Job { [pscustomobject]@{State='Available';Tag='v6'} }
-Wait-Job $script:PackageUpdateJob | Out-Null
-if (-not (Receive-PackageUpdateNotice)) { throw 'Notification missing' }
-if ($script:PackageUpdateJob) { throw 'Job retained' }
+''' + f'$PackRoot = {quote(self.target)}\n$script:PackageUpdateTool = {quote(self.base / "Update-Localization.ps1")}\n'
+
+    def test_only_newer_version_displays_startup_notice(self):
+        self.run_ps(self.menu_functions() + '''
+foreach ($state in @('Current', 'Unknown', 'Failed', 'Available')) {
+    $worker = [PowerShell]::Create()
+    $null = $worker.AddScript("[pscustomobject]@{ State='$state'; Tag='v6' }")
+    $script:PackageUpdateCheck = [pscustomobject]@{ Worker=$worker; Handle=$worker.BeginInvoke() }
+    $null = $script:PackageUpdateCheck.Handle.AsyncWaitHandle.WaitOne(5000)
+    $messages = @(& { $script:shown = Receive-PackageUpdateNotice } 6>&1)
+    if ($state -eq 'Available') {
+        if (-not $script:shown -or $messages.Count -ne 1) { throw 'Notification missing' }
+    } elseif ($script:shown -or $messages.Count) { throw ('Unexpected message: ' + $state) }
+    if ($script:PackageUpdateCheck) { throw 'Worker retained' }
+}
 ''')
+
+    def test_enter_skip_returns_immediately_even_if_network_call_is_still_running(self):
+        self.put(self.base / 'Update-Localization.ps1', ('\ufefffunction Get-LocalizationUpdateStatus { '
+                 "[Threading.Thread]::Sleep(3000); [pscustomobject]@{State='Available';Tag='v6'} }").encode())
+        self.run_ps(self.menu_functions() + '''
+function Test-UpdateSkipRequested { return $true }
+$timer = [Diagnostics.Stopwatch]::StartNew()
+Wait-PackageUpdateCheck
+if ($timer.ElapsedMilliseconds -ge 1000) { throw 'Skip blocked' }
+if ($script:PackageUpdateCheck) { throw 'Check still attached to menu' }
+Write-Host 'MENU'
+''')
+
+    def test_check_finishes_before_menu_and_never_interrupts_read_host(self):
+        self.put(self.base / 'Update-Localization.ps1', ('\ufefffunction Get-LocalizationUpdateStatus { '
+                 "Start-Sleep -Milliseconds 100; [pscustomobject]@{State='Available';Tag='v6'} }").encode())
+        result = self.run_ps(self.menu_functions() + '''
+function Test-UpdateSkipRequested { return $false }
+Wait-PackageUpdateCheck
+if ($script:PackageUpdateCheck) { throw 'Check still running' }
+Write-Host 'MENU'
+Write-Host 'INPUT'
+Start-Sleep -Milliseconds 200
+''')
+        output = result.stdout.decode('utf-8', 'replace')
+        self.assertLess(output.index('发现上游更新'), output.index('MENU'))
+        self.assertEqual(output.count('发现上游更新'), 1)
+        self.assertTrue(output.rstrip().endswith('INPUT'))
+
+    def test_manual_update_never_downloads_same_or_older_release(self):
+        before = self.snapshot()
+        result = self.run_ps('''
+function Get-UpstreamRelease { return [pscustomobject]@{tag_name='v4'; assets=@(@{
+name='AzurPromilia-Localization-Full-v4.zip'; size=100; digest=('sha256:' + ('a' * 64));
+browser_download_url=('https://github.com/' + $script:Upstream + '/releases/download/v4/AzurPromilia-Localization-Full-v4.zip') }) } }
+function Invoke-WebRequest { throw 'Unexpected download' }
+''' + f'if (Invoke-LocalizationUpdate {quote(self.target)}) {{ throw "Unexpected restart" }}\n')
+        self.assertEqual(before, self.snapshot())
+        self.assertIn('当前已是最新版本', result.stdout.decode('utf-8', 'replace'))
+
+    def test_bat_reloads_updated_script_in_same_window_and_preserves_dragged_path(self):
+        shutil.copy2(ROOT / '双击运行.bat', self.target / '双击运行.bat')
+        script = self.target / 'tools/Manage-Localization.ps1'
+        next_script = "param([string]$Hint='')\n[IO.File]::WriteAllText((Join-Path $PSScriptRoot 'reloaded.txt'), $Hint)\nexit 0\n"
+        first_script = ("param([string]$Hint='')\n[IO.File]::WriteAllText($PSCommandPath, "
+                        + quote('\ufeff' + next_script) + ", (New-Object Text.UTF8Encoding($false)))\nexit 42\n")
+        self.put(script, ('\ufeff' + first_script).encode())
+        command = 'cmd.exe /d /s /c ""' + str(self.target / '双击运行.bat') + '" "' + str(self.target) + '""'
+        result = subprocess.run(command, input=b'\r\n', stdout=subprocess.PIPE,
+                                stderr=subprocess.STDOUT, timeout=15)
+        self.assertEqual(result.returncode, 0, result.stdout.decode('utf-8', 'replace'))
+        self.assertEqual((self.target / 'tools/reloaded.txt').read_text('utf-8'), str(self.target))
+        self.assertEqual(result.stdout.decode('utf-8', 'replace').count('按任意键继续'), 1)
 
 
 if __name__ == '__main__':
