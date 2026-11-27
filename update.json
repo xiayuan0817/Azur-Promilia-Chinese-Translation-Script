@@ -1,15 +1,15 @@
 {
   "format": 1,
   "repository": "xiayuan0817/Azur-Promilia-Chinese-Translation-Script",
-  "manifest_sha256": "dd2a32b50e43bc42c0098c6bc07331a1bb8a2b8657f92fa8860f211d63fe72ee",
+  "manifest_sha256": "1d60d5ad2548a25563f609f2955faa435b0bdaeca05c151af67d09d260041959",
   "release": {
-    "tag_name": "v6",
+    "tag_name": "v6.1",
     "assets": [
       {
-        "name": "AzurPromilia-Localization-Full-v6.zip",
-        "size": 572392198,
-        "digest": "sha256:6f8077baafd3be65a243b9631dc4f4c260d08bfc7abddaeef9ba8ee1a4e2d637",
-        "browser_download_url": "https://github.com/xiayuan0817/Azur-Promilia-Chinese-Translation-Script/releases/download/v6/AzurPromilia-Localization-Full-v6.zip"
+        "name": "AzurPromilia-Localization-Full-v6.1.zip",
+        "size": 667092363,
+        "digest": "sha256:ee12490c99b584ba5ef038fc19e920fab62578365f20fd0e8487717b301282fc",
+        "browser_download_url": "https://github.com/xiayuan0817/Azur-Promilia-Chinese-Translation-Script/releases/download/v6.1/AzurPromilia-Localization-Full-v6.1.zip"
       }
     ]
   }
