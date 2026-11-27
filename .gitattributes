@@ -1,4 +1,5 @@
 *.ps1 -text
 *.bat -text
 *.json -text
+使用说明.txt -text
 
