@@ -15,6 +15,57 @@ try { [Console]::OutputEncoding = New-Object System.Text.UTF8Encoding($false); $
 
 $PackRoot = Split-Path $PSScriptRoot -Parent
 . (Join-Path $PSScriptRoot 'Localization-Common.ps1')
+. (Join-Path $PSScriptRoot 'Update-Localization.ps1')
+$script:PackageUpdateJob = $null
+
+function Stop-PackageUpdateCheck {
+    if ($script:PackageUpdateJob) {
+        Stop-Job $script:PackageUpdateJob -ErrorAction SilentlyContinue
+        Remove-Job $script:PackageUpdateJob -Force -ErrorAction SilentlyContinue
+        $script:PackageUpdateJob = $null
+    }
+}
+
+function Receive-PackageUpdateNotice {
+    if (-not $script:PackageUpdateJob -or $script:PackageUpdateJob.State -in @('Running', 'NotStarted')) { return $false }
+    $result = @(Receive-Job $script:PackageUpdateJob -ErrorAction SilentlyContinue)
+    Stop-PackageUpdateCheck
+    Write-Host ''
+    if ($result.Count -and $result[-1].State -eq 'Available') {
+        Write-Host ('发现上游更新（' + $result[-1].Tag + '），输入 U 可更新汉化包，其他功能可照常使用。') -ForegroundColor Yellow
+    } elseif ($result.Count -and $result[-1].State -eq 'Current') {
+        Write-Host '汉化包已是上游最新版本。' -ForegroundColor DarkGray
+    } elseif ($result.Count -and $result[-1].State -eq 'Unknown') {
+        Write-Host '上游版本已检查，输入 U 可校验并同步完整包。' -ForegroundColor DarkGray
+    } else {
+        Write-Host '暂时无法检查上游更新，不影响使用；稍后可输入 U 重试。' -ForegroundColor DarkGray
+    }
+    return $true
+}
+
+function Read-PackageMenuChoice {
+    $prompt = '请输入选项并按回车'
+    try { $redirected = [Console]::IsInputRedirected; $null = [Console]::KeyAvailable } catch { $redirected = $true }
+    if ($redirected) {
+        $null = Receive-PackageUpdateNotice
+        return Read-Host $prompt
+    }
+    $text = ''
+    Write-Host ($prompt + ': ') -NoNewline
+    while ($true) {
+        if (Receive-PackageUpdateNotice) { Write-Host ($prompt + ': ' + $text) -NoNewline }
+        if ([Console]::KeyAvailable) {
+            $key = [Console]::ReadKey($true)
+            if ($key.Key -eq [ConsoleKey]::Enter) { Write-Host ''; return $text }
+            if ($key.Key -eq [ConsoleKey]::Backspace) {
+                if ($text.Length) { $text = $text.Substring(0, $text.Length - 1); [Console]::Write("`b `b") }
+            } elseif (-not [char]::IsControl($key.KeyChar)) {
+                $text += $key.KeyChar
+                [Console]::Write($key.KeyChar)
+            }
+        } else { Start-Sleep -Milliseconds 100 }
+    }
+}
 
 $Definitions = @(
     [pscustomobject]@{ Id = 'tw_game'; Label = '台服游戏'; Script = 'tools/Apply-CRCZH.ps1'; Launcher = $false },
@@ -607,6 +658,16 @@ try {
         exit (Run-Modules $Action $Target $ModuleIds $null $Quiet.IsPresent)
     }
 
+    try {
+        $script:PackageUpdateJob = Start-Job -ScriptBlock {
+            param($Tool, $Root)
+            try {
+                . $Tool
+                Get-LocalizationUpdateStatus $Root
+            } catch { [pscustomobject]@{ State = 'Failed' } }
+        } -ArgumentList (Join-Path $PSScriptRoot 'Update-Localization.ps1'), $PackRoot
+    } catch {}
+
     $gamePlans = @{}
     foreach ($id in @('tw_game', 'jp_game')) {
         $region = if ($id -eq 'tw_game') { 'tw' } else { 'jp' }
@@ -623,6 +684,7 @@ try {
     Write-Host '本脚本开源免费，如付费购买请退款，严禁倒卖。' -ForegroundColor Yellow
     Write-Host '  开服后若登录异常请还原文件，此脚本未进行反作弊验证' -ForegroundColor Red
     Write-Host '=================================================='
+    Write-Host '正在后台检查汉化包更新，可正常使用……' -ForegroundColor DarkGray
     Write-Host '正在查找游戏和启动器安装位置……'
     $configured = Read-ConfiguredPaths
     $menuLocations = Find-MenuLocations $configured $Hint
@@ -670,10 +732,11 @@ try {
     Write-Host '  9. 还原日服反虚化'
     Write-Host '  10. 台服反虚化'
     Write-Host '  11. 还原台服反虚化'
+    Write-Host '  U. 检查并更新汉化包'
     Write-Host '  Q. 退出'
     while ($true) {
         $items = @($Definitions | Where-Object { $menuLocations[$_.Id].State -eq 'found' })
-        $rawChoice = Read-Host '请输入选项并按回车'
+        $rawChoice = Read-PackageMenuChoice
         if ($null -eq $rawChoice) { break }
         $choice = ([string]$rawChoice).Trim()
         if ($choice -in @('q', 'Q')) { break }
@@ -682,6 +745,11 @@ try {
         $op = $null
         try {
             switch ($choice) {
+                'U' {
+                    Stop-PackageUpdateCheck
+                    Invoke-LocalizationUpdate $PackRoot
+                    exit 0
+                }
                 '1' { $op = 'Apply' }
                 '2' { $op = 'Restore' }
                 '3' { $op = 'Apply'; $ids = @(Parse-Select (Read-Host '请输入项目编号（多个用逗号分隔，例如 1,3）') $items) }
@@ -753,4 +821,5 @@ try {
     }
     exit $lastExitCode
 } catch { Write-Host $_.Exception.Message -ForegroundColor Red; exit 1 }
+finally { Stop-PackageUpdateCheck }
 

@@ -190,8 +190,13 @@
     },
     {
       "path": "tools/Manage-Localization.ps1",
-      "size": 39990,
-      "sha256": "0111e3a93c183cd313dbf30fa23b33ee46787baee51f5b1e1c5e8d7e966f3945"
+      "size": 43147,
+      "sha256": "e044a82dae094f38e6e422298db7431acd8e902bc9a4a3aa3797855703d3885a"
+    },
+    {
+      "path": "tools/Update-Localization.ps1",
+      "size": 18054,
+      "sha256": "ba0d781d3e997b17d477c29d9fa6cca706134c6a3a07d2a2c7389fc5f495bdbe"
     },
     {
       "path": "tools/jp-deblur-deployment.json",
@@ -220,13 +225,13 @@
     },
     {
       "path": "使用说明.txt",
-      "size": 2012,
-      "sha256": "0c14ace84ca17b51597d8bd9c72daf4bf107b52aa928237d0cca5c6ca7651ae7"
+      "size": 2629,
+      "sha256": "ac7abe51fa01a7dcd3d96cd532772179c9fa98e0368bba9c949dc125a67bd033"
     },
     {
       "path": "双击运行.bat",
-      "size": 601,
-      "sha256": "59584c9af9682a56a08ce31cdb21d30108c8ae2e4c469653af546fe5585c624f"
+      "size": 1195,
+      "sha256": "b0e2803c9694f506921d29c052fe120c6887d5d068a697ddd8f1ef9f8acd5e4b"
     }
   ]
 }
