@@ -8,7 +8,9 @@
 
 前往 [Releases](https://github.com/xiayuan0817/Azur-Promilia-Chinese-Translation-Script/releases) 下载完整汉化包：
 
-**`AzurPromilia-Localization-Full-v6.zip`**
+**`AzurPromilia-Localization-Full-v6.1.zip`**
+
+当前正式版本：**v6.1**。
 
 完整包包含运行脚本和替换资源，无需另行准备国服包体。
 
@@ -28,7 +30,7 @@
 | 3 | 选择项目汉化 |
 | 4 | 选择项目还原 |
 | 5 | 查看文件及备份状态 |
-| 6 | 完整校验（含分段与整包 CRC32） |
+| 6 | 检查区服 |
 | 7 | 手动添加/修改安装目录（支持保存至 `tools/安装路径.json`） |
 | 8 | 日服反虚化 |
 | 9 | 还原日服反虚化 |
@@ -37,7 +39,7 @@
 | U | 检查并更新汉化包 |
 | Q | 退出 |
 
-台服、日服反虚化均从同一个 `双击运行.bat` 菜单操作，不随全部汉化或全部还原执行；选项 `5`、`6` 包含其文件、备份状态及 CRC32 检查。反虚化资源对应日服 `1.0.2`、台服资源版本 `3221746`，仅接受匹配的原版或本版文件。
+台服、日服反虚化均从同一个 `双击运行.bat` 菜单操作，不随全部汉化或全部还原执行。选项 `5` 主动读取文件与备份状态，选项 `6` 只检查区服。首页显示上次操作记录。
 
 选择部分项目时，多个编号用逗号分隔，例如 `1,3`；回车选全部，`0` 或 `q` 取消。
 
@@ -63,44 +65,50 @@
 
 更新前关闭其他汉化脚本窗口。脚本自动下载、解压并校验完整包后替换文件；替换失败时恢复原文件。保留 `tools/安装路径.json`、日志及游戏目录中的原版备份。更新成功后自动重新加载菜单，按需执行汉化。
 
-## 资源基线与启动器版本
+## 当前资源
 
-| 项目 | 对应版本 |
-| --- | --- |
-| 台服游戏 | 资源版本 `3221745` |
-| 日服游戏 | 资源版本 `3219598`，内置资源版本 `3075915` |
-| 台服启动器 | `1.0.1.4` |
-| 日服启动器 | `1.8.1` |
+v6.1 对应台服资源 `3273850`，日服资源 `3273853`；两服各同步 6 条国服更新文案。
 
-资源版本变化时，自动检查清单与目标资源段是否兼容；不兼容时停止操作。
+已复核国服 `3271113` 的语言表及界面文案。日服反虚化更新为 5 个资源文件，台服单独补齐主菜单对应参数。汉化与反虚化共用的清单分别合并和还原各自字段。
+
+区服通过游戏发行配置及启动器包身份识别，国服、未知或互相冲突的区服标识会停止该项操作。不比较 EXE 或游戏资源版本。
+
+安装前不全量检查目标及补丁文件是否齐全。确认区服后逐个备份、写入；目标文件原先不存在时记录并创建。实际处理失败会显示具体路径，并回滚该模块此前的写入。已完成的其他模块不受影响。
 
 ## 功能范围
 
 - 台服游戏文本及相关字体资源。
 - 日服游戏文本、内置启动文案及相关字体资源。
 - 台服、日服启动器界面。
-- 台服、日服反虚化，支持安装、还原、状态检查及 CRC32 校验。
+- 台服、日服反虚化，支持安装、还原及状态检查。
 
 主要采用国服官方简体文案。服务器动态下发的内容及图片内文字可能仍显示原文。
 
-## 资源校验
+## 文件检查
 
-游戏资源汉化采用等长替换及 CRC 配平方案，目标是保留原版资源大小、分段 CRC 和整包 CRC。
+安装不以已安装资源的 SHA-256、CRC、大小或版本作为门槛。保留补丁自身完整性、备份和复制结果检查。
 
-保留资源基线检查；兼容的小幅热更可自动适配。操作前校验资源、只读清单及备份；目标段变化、匹配不唯一或校验失败时停止操作。
-
+下载更新及构建发行包仍检查汉化包自身完整性。本次重新生成语言资源及对应的资源清单，资源摘要随内容正常变化，不伪装成原版文件。清单替换仅用于匹配重建后的资源，不改变游戏自身的校验逻辑。
 
 ## 备份与还原
 
-汉化或反虚化前会备份原版文件，请勿手动删除：
+首次替换前自动备份当前文件，已有备份不覆盖，请勿手动删除：
 
 | 项目 | 备份位置 |
 | --- | --- |
-| 台服游戏 | 游戏目录下 `.zhcn-crc-readonly-3221745-backup` |
-| 日服游戏 | 游戏目录下 `.zhcn-jp-crc-readonly-3219598-backup` |
-| 日服反虚化 | 游戏目录下 `.jp-deblur-1.0.2-backup` |
-| 台服反虚化 | 游戏目录下 `.tw-deblur-3221746-backup` |
+| 台服游戏 | 游戏目录下 `.zhcn-tw-3273850-backup` |
+| 日服游戏 | 游戏目录下 `.zhcn-jp-3273853-backup` |
+| 日服反虚化 | 游戏目录下 `.jp-deblur-3273853-backup` |
+| 台服反虚化 | 游戏目录下 `.tw-deblur-3273850-backup` |
 | 启动器 | `resources/app.asar.before-zhcn-20261124.bak` |
+
+还原时恢复所选项目备份目录中的全部可用文件，不要求当前 EXE 或补丁资源存在；本补丁创建的文件会移除。内容已与备份一致则跳过。没有备份时说明未修改。
+
+本次更新使用新的备份目录，保留旧版备份。还原本次更新只使用本次备份，不混用旧资源。
+
+备份保存首次替换前的实际内容，不保证备份前一定是官方原版。日服共享索引如已被独立语音补丁修改，继续保留该外部修改；本项目不安装或校验语音包。
+
+保留外部共享索引时，关联语言表与资源清单也会跳过，避免引用不配套；窗口会列出已保留的文件。
 
 更新游戏或启动器前，建议先还原文件。
 
@@ -131,7 +139,13 @@ python tests/run_tests.py
 
 修改 `tools/` 下脚本后，可运行 `python build_release.py --refresh-manifest` 更新 `tools/package-files.json` 中的非载荷文件校验值（不改动 `payload/` 哈希）。
 
-构建时同时生成 `dist/update.json`。上传完整包后，将此文件同步到仓库根目录，供启动时检查版本。
+构建完整包时，通过 `--usage` 指定本地使用说明：
+
+```bash
+python build_release.py --payload <payload目录> --usage <使用说明.txt路径> --version v6.1 --refresh-manifest --verify-repo
+```
+
+使用说明 TXT 仅放入完整包，不包含在源码中。构建时同时生成 `dist/update.json`。上传完整包后，将此文件同步到仓库根目录，供启动时检查版本。
 
 ## 问题反馈
 
@@ -144,8 +158,8 @@ python tests/run_tests.py
 
 ## 致谢
 
-- [taisiringo](https://github.com/taisiringo)：[AzurPromilia-NoFog](https://github.com/taisiringo/AzurPromilia-NoFog)，提供日服反虚化资源与实现参考。
-- [liuli-zzzz](https://github.com/liuli-zzzz)：[#4](https://github.com/xiayuan0817/Azur-Promilia-Chinese-Translation-Script/pull/4) 改进脚本稳定性、CRC 校验、交互及隔离测试；[#7](https://github.com/xiayuan0817/Azur-Promilia-Chinese-Translation-Script/pull/7) 提供小幅热更适配与资源分段重定位。
+- [taisiringo](https://github.com/taisiringo)：[AzurPromilia-NoFog](https://github.com/taisiringo/AzurPromilia-NoFog)，提供日服反虚化资源及相关工具（[#10](https://github.com/xiayuan0817/Azur-Promilia-Chinese-Translation-Script/pull/10)）。
+- [liuli-zzzz](https://github.com/liuli-zzzz)：[#4](https://github.com/xiayuan0817/Azur-Promilia-Chinese-Translation-Script/pull/4) 改进脚本稳定性、CRC 校验、交互及隔离测试；[#7](https://github.com/xiayuan0817/Azur-Promilia-Chinese-Translation-Script/pull/7) 提交小幅热更适配与资源分段重定位改进建议。
 
 ## 许可说明
 
