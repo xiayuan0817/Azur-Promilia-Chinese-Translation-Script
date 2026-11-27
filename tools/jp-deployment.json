@@ -28,7 +28,8 @@
           "target_sha256": "71716a383a9e629fb67ff237fdf4e85640799bacfe5e49b51303eb009faf8e47",
           "source_sha256": "99b8129d49586d26745630a76423609123ddcb1a7aad3e0a971886b13336a878"
         }
-      ]
+      ],
+      "preserve_external_changes": true
     },
     {
       "relative_path": ".res/raw_streaming_package/BundleFiles/fcl0wxz2z6hoffogv4xgzw.r",
@@ -58,8 +59,13 @@
     {
       "relative_path": "resources.assets",
       "source_sha256": "df93ce7192d6a46b33350204349e66a45e410124e3057224ad1a17e6f24b115b",
-      "target_sha256": "4184dc249acb4af706a78ef3ad365ca04407e2197bd3de801c8fc7c281648228",
-      "size": 48578276
+      "target_sha256": "d0f951bf30d046dc34a975ce0a0f75f169ebaa002feebc5a1f28ae0a3cf15946",
+      "size": 48578276,
+      "previous_sha256": [
+        "4184dc249acb4af706a78ef3ad365ca04407e2197bd3de801c8fc7c281648228"
+      ],
+      "crc32": 3853195572,
+      "segments": []
     },
     {
       "relative_path": "StreamingAssets/.res/default_package/xlpsyuxnoz1cjmawi1wcxa.r",
@@ -2239,11 +2245,13 @@
   "readonly_files": [
     {
       "relative_path": ".res/raw_base_package/ManifestFiles/0release_raw_base_package_3219598.bytes",
-      "sha256": "d4e93fdd9f06740e77f6bb6786ce545bc3226cebf3f760e9f1c003fde4941cf2"
+      "sha256": "d4e93fdd9f06740e77f6bb6786ce545bc3226cebf3f760e9f1c003fde4941cf2",
+      "skip_validation": true
     },
     {
       "relative_path": ".res/raw_base_package/ManifestFiles/0release_raw_base_package_3219598.hash",
-      "sha256": "28bd189d4e038c0966ac2fa4e818435a2e671be1b9d4bb2b1ad69fed31623615"
+      "sha256": "28bd189d4e038c0966ac2fa4e818435a2e671be1b9d4bb2b1ad69fed31623615",
+      "skip_validation": true
     },
     {
       "relative_path": ".res/raw_base_package/ManifestFiles/ApplicationFootPrint.bytes",
@@ -2255,11 +2263,13 @@
     },
     {
       "relative_path": ".res/raw_streaming_package/ManifestFiles/0release_raw_streaming_package_3219598.bytes",
-      "sha256": "d962180d504e9c03f970f85d68815dcd0368db6d62a629b1af56e0d617bf86c4"
+      "sha256": "d962180d504e9c03f970f85d68815dcd0368db6d62a629b1af56e0d617bf86c4",
+      "skip_validation": true
     },
     {
       "relative_path": ".res/raw_streaming_package/ManifestFiles/0release_raw_streaming_package_3219598.hash",
-      "sha256": "83208f16c0affccfb710ad128abe4d294c8336acc46562b2494cbb4084ddd449"
+      "sha256": "83208f16c0affccfb710ad128abe4d294c8336acc46562b2494cbb4084ddd449",
+      "skip_validation": true
     },
     {
       "relative_path": ".res/raw_streaming_package/ManifestFiles/ApplicationFootPrint.bytes",
@@ -2284,14 +2294,6 @@
     {
       "relative_path": ".res/default_package/UnpackManifestFiles/ApplicationFootPrint.bytes",
       "sha256": "9690e7beb474b475fd0fc78e96943ac3498b351ce0617be31d59fddc03163553"
-    },
-    {
-      "relative_path": "StreamingAssets/.res/default_package/0release_default_package_3075915.bytes",
-      "sha256": "7e900b3856690bf5b6c07e7ad66f8552f971893ec1105ac91309a12e18ed2457"
-    },
-    {
-      "relative_path": "StreamingAssets/.res/default_package/0release_default_package_3075915.hash",
-      "sha256": "e576411e02d3f99a5fe1cf8e708dd24fc6403b34efefd0851490fc923892e274"
     },
     {
       "relative_path": "StreamingAssets/.res/default_package/BuildinCatalog.bytes",

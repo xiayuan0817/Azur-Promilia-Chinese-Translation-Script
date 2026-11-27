@@ -16,55 +16,69 @@ try { [Console]::OutputEncoding = New-Object System.Text.UTF8Encoding($false); $
 $PackRoot = Split-Path $PSScriptRoot -Parent
 . (Join-Path $PSScriptRoot 'Localization-Common.ps1')
 . (Join-Path $PSScriptRoot 'Update-Localization.ps1')
-$script:PackageUpdateJob = $null
+$script:PackageUpdateCheck = $null
+$script:PackageUpdateTool = Join-Path $PSScriptRoot 'Update-Localization.ps1'
+
+function Start-PackageUpdateCheck {
+    $worker = [PowerShell]::Create()
+    try {
+        $null = $worker.AddScript({
+            param($Tool, $Root)
+            $ErrorActionPreference = 'Stop'
+            $ProgressPreference = 'SilentlyContinue'
+            try {
+                . $Tool
+                Get-LocalizationUpdateStatus $Root
+            } catch { [pscustomobject]@{ State = 'Failed' } }
+        }.ToString()).AddArgument($script:PackageUpdateTool).AddArgument($PackRoot)
+        $script:PackageUpdateCheck = [pscustomobject]@{ Worker = $worker; Handle = $worker.BeginInvoke() }
+    } catch { $worker.Dispose() }
+}
 
 function Stop-PackageUpdateCheck {
-    if ($script:PackageUpdateJob) {
-        Stop-Job $script:PackageUpdateJob -ErrorAction SilentlyContinue
-        Remove-Job $script:PackageUpdateJob -Force -ErrorAction SilentlyContinue
-        $script:PackageUpdateJob = $null
+    if ($script:PackageUpdateCheck) {
+        $check = $script:PackageUpdateCheck
+        $script:PackageUpdateCheck = $null
+        if ($check.Handle.IsCompleted) { $check.Worker.Dispose() }
+        else {
+            $null = $check.Worker.BeginStop($null, $null)
+            $script:StoppedUpdateCheck = $check
+        }
     }
 }
 
 function Receive-PackageUpdateNotice {
-    if (-not $script:PackageUpdateJob -or $script:PackageUpdateJob.State -in @('Running', 'NotStarted')) { return $false }
-    $result = @(Receive-Job $script:PackageUpdateJob -ErrorAction SilentlyContinue)
-    Stop-PackageUpdateCheck
-    Write-Host ''
+    if (-not $script:PackageUpdateCheck -or -not $script:PackageUpdateCheck.Handle.IsCompleted) { return $false }
+    try { $result = @($script:PackageUpdateCheck.Worker.EndInvoke($script:PackageUpdateCheck.Handle)) }
+    catch { $result = @() }
+    finally { Stop-PackageUpdateCheck }
     if ($result.Count -and $result[-1].State -eq 'Available') {
         Write-Host ('发现上游更新（' + $result[-1].Tag + '），输入 U 可更新汉化包，其他功能可照常使用。') -ForegroundColor Yellow
-    } elseif ($result.Count -and $result[-1].State -eq 'Current') {
-        Write-Host '汉化包已是上游最新版本。' -ForegroundColor DarkGray
-    } elseif ($result.Count -and $result[-1].State -eq 'Unknown') {
-        Write-Host '上游版本已检查，输入 U 可校验并同步完整包。' -ForegroundColor DarkGray
-    } else {
-        Write-Host '暂时无法检查上游更新，不影响使用；稍后可输入 U 重试。' -ForegroundColor DarkGray
+        return $true
     }
-    return $true
+    return $false
 }
 
-function Read-PackageMenuChoice {
-    $prompt = '请输入选项并按回车'
-    try { $redirected = [Console]::IsInputRedirected; $null = [Console]::KeyAvailable } catch { $redirected = $true }
-    if ($redirected) {
+function Test-UpdateSkipRequested {
+    try {
+        if ([Console]::IsInputRedirected) { return $true }
+        if ([Console]::KeyAvailable) { return ([Console]::ReadKey($true).Key -eq [ConsoleKey]::Enter) }
+    } catch { return $true }
+    return $false
+}
+
+function Wait-PackageUpdateCheck {
+    Write-Host '正在检查更新（按回车跳过检查）……' -ForegroundColor DarkGray
+    Start-PackageUpdateCheck
+    try {
+        $deadline = [DateTime]::UtcNow.AddSeconds(10)
+        while ($script:PackageUpdateCheck -and -not $script:PackageUpdateCheck.Handle.IsCompleted) {
+            if (Test-UpdateSkipRequested) { return }
+            if ([DateTime]::UtcNow -ge $deadline) { return }
+            Start-Sleep -Milliseconds 50
+        }
         $null = Receive-PackageUpdateNotice
-        return Read-Host $prompt
-    }
-    $text = ''
-    Write-Host ($prompt + ': ') -NoNewline
-    while ($true) {
-        if (Receive-PackageUpdateNotice) { Write-Host ($prompt + ': ' + $text) -NoNewline }
-        if ([Console]::KeyAvailable) {
-            $key = [Console]::ReadKey($true)
-            if ($key.Key -eq [ConsoleKey]::Enter) { Write-Host ''; return $text }
-            if ($key.Key -eq [ConsoleKey]::Backspace) {
-                if ($text.Length) { $text = $text.Substring(0, $text.Length - 1); [Console]::Write("`b `b") }
-            } elseif (-not [char]::IsControl($key.KeyChar)) {
-                $text += $key.KeyChar
-                [Console]::Write($key.KeyChar)
-            }
-        } else { Start-Sleep -Milliseconds 100 }
-    }
+    } finally { Stop-PackageUpdateCheck }
 }
 
 $Definitions = @(
@@ -373,8 +387,9 @@ function Get-ItemSummary($Definition, [string]$Root) {
             if (-not [IO.File]::Exists($file)) { return '缺少文件' }
             if ((Sha $file) -ne $guard.sha256) { return '版本不匹配' }
         }
-        $original = 0; $localized = 0; $partial = $false
+        $original = 0; $localized = 0; $previous = 0; $partial = $false; $checkedItems = 0
         foreach ($item in $ctx.Items) {
+            $checkedItems++
             $file = Install-Child $dataRoot $item.TargetRelativePath
             if (-not [IO.File]::Exists($file)) { return '缺少文件' }
             if ($item.Mode -eq 'ExactFile') {
@@ -383,6 +398,7 @@ function Get-ItemSummary($Definition, [string]$Root) {
                 $hash = Sha $file
                 if ($hash -eq $entry.source_sha256) { $original++ }
                 elseif ($hash -eq $entry.target_sha256) { $localized++ }
+                elseif (Test-PreviousGameResourceHash $entry $hash) { $previous++ }
                 else { return '版本不匹配' }
             } else {
                 $relState = Get-RelocatedPackState $file $item
@@ -393,8 +409,10 @@ function Get-ItemSummary($Definition, [string]$Root) {
             }
         }
         if ($partial) { if ($Definition.Id -in $DeblurDefinitions.Id) { return '部分反虚化' }; return '部分汉化' }
-        if ($original -eq @($ctx.Items).Count) { return '原版' }
-        if ($localized -eq @($ctx.Items).Count) { if ($Definition.Id -in $DeblurDefinitions.Id) { return '已反虚化' }; return '已汉化' }
+        if ($previous -gt 0) { return '旧版汉化' }
+        if (-not $checkedItems) { return '未检查' }
+        if ($original -eq $checkedItems) { return '原版' }
+        if ($localized -eq $checkedItems) { if ($Definition.Id -in $DeblurDefinitions.Id) { return '已反虚化' }; return '已汉化' }
         if ($Definition.Id -in $DeblurDefinitions.Id) { return '部分反虚化' }
         return '部分汉化'
     } catch { return '无法读取' }
@@ -493,10 +511,21 @@ function Show-FileStatus($Items, [hashtable]$Locations) {
             $ctx = Resolve-GameDeploymentContext $plan $dataRoot
         } catch {
             Write-Host ('  热更清单解析失败：' + $_.Exception.Message) -ForegroundColor Yellow
+            $fallbackSkipped = New-Object 'System.Collections.Generic.List[string]'
+            foreach ($guard in @($plan.readonly_files)) {
+                if ($guard.skip_validation) { $fallbackSkipped.Add([string]$guard.relative_path) }
+            }
             $fallbackItems = @($plan.files | ForEach-Object {
+                if (Test-PreserveExternalGameResource $_ $dataRoot) {
+                    $fallbackSkipped.Add([string]$_.relative_path)
+                    return
+                }
                 [PSCustomObject]@{ Mode = 'ExactFile'; TargetRelativePath = $_.relative_path; PayloadRelativePath = $_.relative_path; Entry = $_; ManifestVersion = $null }
             })
-            $ctx = [PSCustomObject]@{ ActiveGuards = @($plan.readonly_files); Items = $fallbackItems; HotfixVersions = @() }
+            $ctx = [PSCustomObject]@{
+                ActiveGuards = @($plan.readonly_files | Where-Object { -not $_.skip_validation })
+                Items = $fallbackItems; HotfixVersions = @(); SkippedFiles = @($fallbackSkipped.ToArray())
+            }
         }
 
         $bkTotal = @($ctx.Items).Count
@@ -511,6 +540,7 @@ function Show-FileStatus($Items, [hashtable]$Locations) {
                     $hash = Sha $file
                     if ($hash -eq $e.target_sha256) { $state = if ($d.Id -in $DeblurDefinitions.Id) { '已反虚化' } else { '已汉化' } }
                     elseif ($hash -eq $e.source_sha256) { $state = '原版' }
+                    elseif (Test-PreviousGameResourceHash $e $hash) { $state = '旧版汉化（需更新）' }
                     else { $state = '版本不匹配' }
                 } else {
                     $relState = Get-RelocatedPackState $file $item
@@ -553,10 +583,16 @@ function Show-FileStatus($Items, [hashtable]$Locations) {
             try {
                 $file = Install-Child $dataRoot $e.relative_path
                 if (-not [IO.File]::Exists($file)) { $state = '缺少文件' }
-                elseif ((Sha $file) -eq $e.sha256) { $state = '原版（只读）' }
-                else { $state = '版本不匹配' }
+                else {
+                    $hash = Sha $file
+                    if ($hash -eq $e.sha256) { $state = '原版（只读）' }
+                    else { $state = '版本不匹配' }
+                }
             } catch {}
             Write-Host ('  {0}  {1}' -f $state, $e.relative_path)
+        }
+        foreach ($relative in @($ctx.SkippedFiles)) {
+            Write-Host ('  已排除（共享资源）  ' + $relative) -ForegroundColor DarkGray
         }
         if ($bkBad -gt 0) {
             Write-Host ('  原版备份：部分损坏（{0}/{1} 正常，{2} 异常）' -f $bkOk, $bkTotal, $bkBad) -ForegroundColor Yellow
@@ -658,16 +694,6 @@ try {
         exit (Run-Modules $Action $Target $ModuleIds $null $Quiet.IsPresent)
     }
 
-    try {
-        $script:PackageUpdateJob = Start-Job -ScriptBlock {
-            param($Tool, $Root)
-            try {
-                . $Tool
-                Get-LocalizationUpdateStatus $Root
-            } catch { [pscustomobject]@{ State = 'Failed' } }
-        } -ArgumentList (Join-Path $PSScriptRoot 'Update-Localization.ps1'), $PackRoot
-    } catch {}
-
     $gamePlans = @{}
     foreach ($id in @('tw_game', 'jp_game')) {
         $region = if ($id -eq 'tw_game') { 'tw' } else { 'jp' }
@@ -683,8 +709,9 @@ try {
     Write-Host '  蓝色星原：旅谣 简体汉化/尔安 ' -ForegroundColor Cyan -NoNewline
     Write-Host '本脚本开源免费，如付费购买请退款，严禁倒卖。' -ForegroundColor Yellow
     Write-Host '  开服后若登录异常请还原文件，此脚本未进行反作弊验证' -ForegroundColor Red
+    Write-Host ''
+    Wait-PackageUpdateCheck
     Write-Host '=================================================='
-    Write-Host '正在后台检查汉化包更新，可正常使用……' -ForegroundColor DarkGray
     Write-Host '正在查找游戏和启动器安装位置……'
     $configured = Read-ConfiguredPaths
     $menuLocations = Find-MenuLocations $configured $Hint
@@ -736,7 +763,7 @@ try {
     Write-Host '  Q. 退出'
     while ($true) {
         $items = @($Definitions | Where-Object { $menuLocations[$_.Id].State -eq 'found' })
-        $rawChoice = Read-PackageMenuChoice
+        $rawChoice = Read-Host '请输入选项并按回车'
         if ($null -eq $rawChoice) { break }
         $choice = ([string]$rawChoice).Trim()
         if ($choice -in @('q', 'Q')) { break }
@@ -747,8 +774,8 @@ try {
             switch ($choice) {
                 'U' {
                     Stop-PackageUpdateCheck
-                    Invoke-LocalizationUpdate $PackRoot
-                    exit 0
+                    if (Invoke-LocalizationUpdate $PackRoot) { exit 42 }
+                    continue
                 }
                 '1' { $op = 'Apply' }
                 '2' { $op = 'Restore' }
@@ -821,5 +848,11 @@ try {
     }
     exit $lastExitCode
 } catch { Write-Host $_.Exception.Message -ForegroundColor Red; exit 1 }
-finally { Stop-PackageUpdateCheck }
+finally {
+    Stop-PackageUpdateCheck
+    if ($script:StoppedUpdateCheck -and $script:StoppedUpdateCheck.Handle.IsCompleted) {
+        $script:StoppedUpdateCheck.Worker.Dispose()
+        $script:StoppedUpdateCheck = $null
+    }
+}
 

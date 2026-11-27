@@ -60,9 +60,9 @@ function ConvertFrom-UpstreamPage([string]$Html, [string]$Tag) {
     $rows = @([regex]::Matches($Html, '(?s)<li\b[^>]*>.*?</li>') | Where-Object {
         $_.Value -cmatch ('href="' + [regex]::Escape($relativeUrl) + '"')
     })
-    if ($rows.Count -ne 1) { throw '官方发布页未找到唯一的完整包。' }
+    if ($rows.Count -ne 1) { throw 'GitHub 发布页未找到唯一的完整包。' }
     $hashMatch = [regex]::Match($rows[0].Value, '<clipboard-copy\b[^>]*\bvalue="(sha256:[a-fA-F0-9]{64})"')
-    if (-not $hashMatch.Success) { throw '官方发布页缺少完整包 SHA-256。' }
+    if (-not $hashMatch.Success) { throw 'GitHub 发布页缺少完整包 SHA-256。' }
     return [pscustomobject]@{ tag_name = $Tag; assets = @([pscustomobject]@{
         name = $name; size = $null; id = $null; digest = $hashMatch.Groups[1].Value
         browser_download_url = 'https://github.com' + $relativeUrl
@@ -70,6 +70,7 @@ function ConvertFrom-UpstreamPage([string]$Html, [string]$Tag) {
 }
 
 function Get-UpstreamRelease($Headers, [switch]$Silent) {
+    $ProgressPreference = 'SilentlyContinue'
     try {
         $index = Invoke-RestMethod -Uri ('https://raw.githubusercontent.com/' + $script:Upstream + '/main/update.json') -Headers $Headers -TimeoutSec 15
         if ($index.format -ne 1 -or $index.repository -cne $script:Upstream -or
@@ -81,15 +82,37 @@ function Get-UpstreamRelease($Headers, [switch]$Silent) {
     try {
         return Invoke-RestMethod -Uri ('https://api.github.com/repos/' + $script:Upstream + '/releases/latest') -Headers $Headers -TimeoutSec 45
     } catch {
-        if (-not $Silent) { Write-Host 'GitHub API 暂不可用，改从官方发布页检查……' -ForegroundColor Yellow }
+        if (-not $Silent) { Write-Host '正在通过 GitHub 发布页检查更新……' -ForegroundColor DarkGray }
         $base = 'https://github.com/' + $script:Upstream
         $page = Invoke-WebRequest -UseBasicParsing -Uri ($base + '/releases/latest') -TimeoutSec 45
         $tagMatch = [regex]::Match($page.Content, [regex]::Escape('/' + $script:Upstream + '/releases/expanded_assets/') + '([A-Za-z0-9._-]+)"')
-        if (-not $tagMatch.Success) { throw '官方发布页未找到正式版本信息。' }
+        if (-not $tagMatch.Success) { throw 'GitHub 发布页未找到正式版本信息。' }
         $tag = $tagMatch.Groups[1].Value
         $assetsPage = Invoke-WebRequest -UseBasicParsing -Uri ($base + '/releases/expanded_assets/' + $tag) -TimeoutSec 45
         return ConvertFrom-UpstreamPage $assetsPage.Content $tag
     }
+}
+
+function ConvertTo-UpdateVersion([string]$Tag) {
+    if ($Tag -notmatch '^[vV]?(\d+(?:\.\d+){0,3})$') { return $null }
+    $parts = @($Matches[1].Split('.'))
+    while ($parts.Count -lt 4) { $parts += '0' }
+    try { return [version]($parts -join '.') } catch { return $null }
+}
+
+function Compare-UpdateVersion([string]$Root, [string]$RemoteTag) {
+    $localTag = ''
+    try {
+        $catalog = Get-Content -LiteralPath (Get-UpdateChild $Root 'tools/package-files.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+        $localTag = [string]$catalog.version
+    } catch {}
+    if (-not $localTag) {
+        try { $localTag = [string](Get-Content -LiteralPath (Get-UpdateChild $Root 'tools/update-state.json') -Raw -Encoding UTF8 | ConvertFrom-Json).tag } catch {}
+    }
+    $local = ConvertTo-UpdateVersion $localTag
+    $remote = ConvertTo-UpdateVersion $RemoteTag
+    if ($null -eq $local -or $null -eq $remote) { return $null }
+    return $local.CompareTo($remote)
 }
 
 function Get-LocalizationUpdateStatus([string]$Root) {
@@ -99,9 +122,12 @@ function Get-LocalizationUpdateStatus([string]$Root) {
     $asset = Get-UpstreamAsset $release
     $digest = ([string]$asset.digest).Substring(7).ToLowerInvariant()
     $status = 'Unknown'
+    $comparison = Compare-UpdateVersion $Root ([string]$release.tag_name)
     $catalogPath = Get-UpdateChild $Root 'tools/package-files.json'
-    if ($release.manifest_sha256) {
-        $status = if ([IO.File]::Exists($catalogPath) -and (Get-UpdateSha256 $catalogPath) -ieq $release.manifest_sha256) { 'Current' } else { 'Available' }
+    if ($null -ne $comparison) {
+        $status = if ($comparison -lt 0) { 'Available' } else { 'Current' }
+    } elseif ($release.manifest_sha256 -and [IO.File]::Exists($catalogPath) -and (Get-UpdateSha256 $catalogPath) -ieq $release.manifest_sha256) {
+        $status = 'Current'
     } else {
         try {
             $state = Get-Content -LiteralPath (Get-UpdateChild $Root 'tools/update-state.json') -Raw -Encoding UTF8 | ConvertFrom-Json
@@ -251,15 +277,21 @@ function Invoke-LocalizationUpdate([string]$Root, [switch]$Check) {
     try { $state = Get-Content -LiteralPath (Get-UpdateChild $Root 'tools/update-state.json') -Raw -Encoding UTF8 | ConvertFrom-Json } catch {}
     $sameBuild = $release.manifest_sha256 -and (Get-UpdateSha256 (Get-UpdateChild $Root 'tools/package-files.json')) -ieq $release.manifest_sha256
     Write-Host ('上游版本：' + $release.tag_name + '  完整包：' + $asset.name)
+    $comparison = Compare-UpdateVersion $Root ([string]$release.tag_name)
+    if ($null -ne $comparison -and $comparison -ge 0) {
+        if ($comparison -eq 0) { Write-Host '当前已是最新版本。' -ForegroundColor Green }
+        else { Write-Host '本地版本高于上游版本，无需更新。' -ForegroundColor Green }
+        return $false
+    }
     if ($sameBuild -or ($state -and $state.repository -ceq $script:Upstream -and $state.sha256 -ceq $digest)) {
         try {
             $catalog = Read-UpdateCatalog $Root
             Assert-UpdateFiles $Root $catalog
             Write-Host '当前汉化包已是上游版本，文件校验通过。' -ForegroundColor Green
-            return
+            return $false
         } catch { Write-Host '当前包有文件缺失或变化，可重新同步修复。' -ForegroundColor Yellow }
-    } else { Write-Host '可同步此完整包；同一版本重新发布也会按 SHA-256 识别。' -ForegroundColor Yellow }
-    if ($Check) { Write-Host '仅检查，未下载或修改文件。'; return }
+    } else { Write-Host '有可用更新。' -ForegroundColor Yellow }
+    if ($Check) { Write-Host '仅检查，未下载或修改文件。'; return $false }
 
     $lockPath = Get-UpdateChild $Root 'tools/.update.lock'
     $lock = $null
@@ -282,10 +314,13 @@ function Invoke-LocalizationUpdate([string]$Root, [switch]$Check) {
             (Get-UpdateSha256 $archive) -ine $digest) { throw '下载包大小或 SHA-256 校验失败，未替换本地文件。' }
         Write-Host '正在校验并同步汉化包……' -ForegroundColor Cyan
         $catalog = Expand-UpdatePackage $archive $staged
+        if ($null -ne $comparison -and (ConvertTo-UpdateVersion ([string]$catalog.version)) -ne (ConvertTo-UpdateVersion ([string]$release.tag_name))) {
+            throw '下载包内部版本与上游版本不一致，未替换本地文件。'
+        }
         $nextState = [ordered]@{ repository = $script:Upstream; tag = [string]$release.tag_name; asset_id = $asset.id; sha256 = $digest; updated_at = [DateTime]::UtcNow.ToString('o') }
         Install-UpdatePackage $Root $staged $backup $catalog $nextState
         Write-Host '汉化包已同步，安装路径和日志已保留。' -ForegroundColor Green
-        Write-Host '请重新运行“双击运行.bat”，按需执行汉化。'
+        Write-Host '正在重新加载脚本……'
     } finally {
         $ProgressPreference = $previousProgress
         if ($lock) { $lock.Dispose() }
@@ -293,12 +328,14 @@ function Invoke-LocalizationUpdate([string]$Root, [switch]$Check) {
             try { [IO.Directory]::Delete($work, $true) } catch { Write-Warning ('更新临时文件未清理：' + $work) }
         }
     }
+    return $true
 }
 
 if ($MyInvocation.InvocationName -ne '.') {
     try {
         try { [Console]::OutputEncoding = New-Object Text.UTF8Encoding($false) } catch {}
-        Invoke-LocalizationUpdate -Root (Split-Path $PSScriptRoot -Parent) -Check:$CheckOnly
+        $updated = Invoke-LocalizationUpdate -Root (Split-Path $PSScriptRoot -Parent) -Check:$CheckOnly
+        if ($updated -and -not $CheckOnly) { exit 42 }
         exit 0
     } catch { Write-Host ('更新失败：' + $_.Exception.Message) -ForegroundColor Red; exit 1 }
 }

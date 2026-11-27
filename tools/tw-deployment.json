@@ -478,8 +478,13 @@
     {
       "relative_path": "resources.assets",
       "source_sha256": "f96fc1afe1675cdabd3c3d54008b539e89e3e65399511aa23cfc864b91c74d9f",
-      "target_sha256": "5c1af532a79dbae32a297418c0782447960142e8c95d28bbfb099b5301206b25",
-      "size": 14235376
+      "target_sha256": "b8f667a2a266ed15890dd581dbeccccec92f448ea6f24e7da95cd3b0338179ca",
+      "size": 14235376,
+      "previous_sha256": [
+        "5c1af532a79dbae32a297418c0782447960142e8c95d28bbfb099b5301206b25"
+      ],
+      "crc32": 3006114595,
+      "segments": []
     }
   ],
   "readonly_files": [

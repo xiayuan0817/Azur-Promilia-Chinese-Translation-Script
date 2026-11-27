@@ -81,7 +81,7 @@
     {
       "path": "payload/jp_game/resources.assets",
       "size": 48578276,
-      "sha256": "4184dc249acb4af706a78ef3ad365ca04407e2197bd3de801c8fc7c281648228"
+      "sha256": "d0f951bf30d046dc34a975ce0a0f75f169ebaa002feebc5a1f28ae0a3cf15946"
     },
     {
       "path": "payload/jp_launcher/resources/app.asar",
@@ -146,7 +146,7 @@
     {
       "path": "payload/tw_game/resources.assets",
       "size": 14235376,
-      "sha256": "5c1af532a79dbae32a297418c0782447960142e8c95d28bbfb099b5301206b25"
+      "sha256": "b8f667a2a266ed15890dd581dbeccccec92f448ea6f24e7da95cd3b0338179ca"
     },
     {
       "path": "payload/tw_launcher/resources/app.asar",
@@ -180,8 +180,8 @@
     },
     {
       "path": "tools/Localization-Common.ps1",
-      "size": 71040,
-      "sha256": "f2a10e1fba2bdbe5508155c20a598a0524acdececa1d81d8443638d7154cce34"
+      "size": 73475,
+      "sha256": "5695149773a5a2e529a2c3f62da0c22d8fbcf8acff16e5f61a6d3da1071b5f7a"
     },
     {
       "path": "tools/Locate-Installations.ps1",
@@ -190,13 +190,13 @@
     },
     {
       "path": "tools/Manage-Localization.ps1",
-      "size": 43147,
-      "sha256": "e044a82dae094f38e6e422298db7431acd8e902bc9a4a3aa3797855703d3885a"
+      "size": 44360,
+      "sha256": "cfef23653c5a514733422cd3ca80c0b266f9b65b61b439772b72b00d3c562079"
     },
     {
       "path": "tools/Update-Localization.ps1",
-      "size": 18054,
-      "sha256": "ba0d781d3e997b17d477c29d9fa6cca706134c6a3a07d2a2c7389fc5f495bdbe"
+      "size": 19886,
+      "sha256": "83791d373de8a4e10b494897cc6a74de4750b8e159ea05ab9d15eb28a0a674bf"
     },
     {
       "path": "tools/jp-deblur-deployment.json",
@@ -205,8 +205,8 @@
     },
     {
       "path": "tools/jp-deployment.json",
-      "size": 60548,
-      "sha256": "11152b86e0529a4f6ea832a927026e5e513ccb77040d371d1726e7a9c22f80ea"
+      "size": 60480,
+      "sha256": "4d870d66c4a3bb49e8c3f72c31edf8b2cba51e5393a3b87ad53022b890496241"
     },
     {
       "path": "tools/launcher-deployment.json",
@@ -220,18 +220,19 @@
     },
     {
       "path": "tools/tw-deployment.json",
-      "size": 17876,
-      "sha256": "83dc0c5e38817b0102757d83344a89aa7e5529683ea0f452cfcc4ced2cd94617"
+      "size": 18041,
+      "sha256": "aab99c0a7df9c89d69a7077369070c8e79ad5bf89632225b810c14b3ab527ce3"
     },
     {
       "path": "使用说明.txt",
-      "size": 2629,
-      "sha256": "ac7abe51fa01a7dcd3d96cd532772179c9fa98e0368bba9c949dc125a67bd033"
+      "size": 2962,
+      "sha256": "5398a0e06ce418acf9748b4fa85d04ff952026065ebc5e3efa529355cb4b5aee"
     },
     {
       "path": "双击运行.bat",
-      "size": 1195,
-      "sha256": "b0e2803c9694f506921d29c052fe120c6887d5d068a697ddd8f1ef9f8acd5e4b"
+      "size": 1445,
+      "sha256": "0a45b32953213865ca99c288bd6b0faf8999f9bee86233624a9a5d48de61eab9"
     }
-  ]
+  ],
+  "version": "v6"
 }

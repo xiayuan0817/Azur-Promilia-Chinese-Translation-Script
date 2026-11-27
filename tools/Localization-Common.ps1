@@ -832,9 +832,16 @@ function Assert-GameResourceVersion([string]$DataRoot, [string]$Expected) {
     }
 }
 
+function Test-PreviousGameResourceHash($Entry, [string]$Hash) {
+    if ($Entry.relative_path -ne 'resources.assets') { return $false }
+    if ($Entry.PSObject.Properties.Name -notcontains 'previous_sha256') { return $false }
+    return ($Hash -in @($Entry.previous_sha256))
+}
+
 function Assert-GameResource([string]$Path, $Entry, [bool]$Patched) {
     $expected = if ($Patched) { $Entry.target_sha256 } else { $Entry.source_sha256 }
-    $checkCrc = $Entry.relative_path.EndsWith('.r')
+    $checkCrc = $Entry.relative_path.EndsWith('.r') -or
+        ($Entry.relative_path -eq 'resources.assets' -and $Entry.PSObject.Properties.Name -contains 'crc32')
     $fullCrc = [uint32]0
     $segOffsets = $null
     $segSizes = $null
@@ -944,10 +951,20 @@ function Get-RelocatedPackState([string]$Path, $Item) {
     return 'Mixed'
 }
 
+function Test-PreserveExternalGameResource($Entry, [string]$DataDir) {
+    if (-not $Entry.preserve_external_changes) { return $false }
+    $file = Resolve-SafeChild $DataDir $Entry.relative_path
+    if (-not [IO.File]::Exists($file)) { return $false }
+    $hash = Get-FileSha256 $file
+    return ($hash -ne $Entry.source_sha256 -and $hash -ne $Entry.target_sha256)
+}
+
 function Resolve-GameDeploymentContext($Plan, [string]$DataDir) {
+    $skippedFiles = New-Object 'System.Collections.Generic.List[string]' 
     $activeGuards = New-Object 'System.Collections.Generic.List[object]'
     $dynCandidates = @{}
     foreach ($g in @($Plan.readonly_files)) {
+        if ($g.skip_validation) { $skippedFiles.Add([string]$g.relative_path) }
         if ($g.relative_path -match '^\.res/([^/]+)/ManifestFiles/0release_([^/]+)_(\d+)\.(bytes|hash)$' -and $Matches[1] -eq $Matches[2]) {
             $pkg = $Matches[1]
             $verStr = $Matches[3]
@@ -966,7 +983,7 @@ function Resolve-GameDeploymentContext($Plan, [string]$DataDir) {
             if ($verStr -eq $dc.BaseVerStr) {
                 if ($ext -eq 'bytes') { $dc.BytesGuard = $g } else { $dc.HashGuard = $g }
             }
-        } else {
+        } elseif (-not $g.skip_validation) {
             $activeGuards.Add($g)
         }
     }
@@ -976,11 +993,17 @@ function Resolve-GameDeploymentContext($Plan, [string]$DataDir) {
     foreach ($pkg in $dynCandidates.Keys) {
         $dc = $dynCandidates[$pkg]
         if (-not $dc.BytesGuard -or -not $dc.HashGuard -or $dc.RawGuards.Count -ne 2) {
-            foreach ($rg in $dc.RawGuards) { $activeGuards.Add($rg) }
+            foreach ($rg in $dc.RawGuards) {
+                if (-not $rg.skip_validation) { $activeGuards.Add($rg) }
+            }
             continue
         }
         $manifestDirRel = ".res/$pkg/ManifestFiles"
         $manifestDir = Resolve-SafeChild $DataDir $manifestDirRel
+        if (-not [IO.Directory]::Exists($manifestDir) -and $dc.BytesGuard.skip_validation -and $dc.HashGuard.skip_validation) {
+            $pkgState[$pkg] = @{ Mode = 'Exact'; Version = $dc.BaseVerStr; Manifest = $null }
+            continue
+        }
         if (-not [IO.Directory]::Exists($manifestDir)) {
             throw "原版只读基线不匹配：$($dc.BytesGuard.relative_path)"
         }
@@ -997,6 +1020,10 @@ function Resolve-GameDeploymentContext($Plan, [string]$DataDir) {
                 }
             }
         }
+        if ($maxVer -lt 0 -and $dc.BytesGuard.skip_validation -and $dc.HashGuard.skip_validation) {
+            $pkgState[$pkg] = @{ Mode = 'Exact'; Version = $dc.BaseVerStr; Manifest = $null }
+            continue
+        }
         if ($maxVer -lt 0) {
             throw "原版只读基线不匹配：$($dc.BytesGuard.relative_path)"
         }
@@ -1004,8 +1031,8 @@ function Resolve-GameDeploymentContext($Plan, [string]$DataDir) {
             throw "原版只读基线版本过低：$($dc.BytesGuard.relative_path)"
         }
         if ($maxVer -eq $dc.BaseVer) {
-            $activeGuards.Add($dc.BytesGuard)
-            $activeGuards.Add($dc.HashGuard)
+            if (-not $dc.BytesGuard.skip_validation) { $activeGuards.Add($dc.BytesGuard) }
+            if (-not $dc.HashGuard.skip_validation) { $activeGuards.Add($dc.HashGuard) }
             $pkgState[$pkg] = @{ Mode = 'Exact'; Version = $maxVerStr; Manifest = $null }
         } else {
             $liveBytesRel = ".res/$pkg/ManifestFiles/0release_${pkg}_${maxVerStr}.bytes"
@@ -1018,8 +1045,12 @@ function Resolve-GameDeploymentContext($Plan, [string]$DataDir) {
             if ($manifest.Package -ne $pkg -or $manifest.Version -ne $maxVerStr) {
                 throw "清单包名或版本不匹配：$liveBytesRel"
             }
-            $activeGuards.Add([pscustomobject]@{ relative_path = $liveBytesRel; sha256 = (Get-FileSha256 $liveBytesPath) })
-            $activeGuards.Add([pscustomobject]@{ relative_path = $liveHashRel; sha256 = (Get-FileSha256 $liveHashPath) })
+            if (-not $dc.BytesGuard.skip_validation) {
+                $activeGuards.Add([pscustomobject]@{ relative_path = $liveBytesRel; sha256 = (Get-FileSha256 $liveBytesPath) })
+            }
+            if (-not $dc.HashGuard.skip_validation) {
+                $activeGuards.Add([pscustomobject]@{ relative_path = $liveHashRel; sha256 = (Get-FileSha256 $liveHashPath) })
+            }
             $pkgState[$pkg] = @{ Mode = 'Hotfix'; Version = $maxVerStr; Manifest = $manifest }
             if (-not $hotfixVersions.Contains($maxVerStr)) { $hotfixVersions.Add($maxVerStr) }
         }
@@ -1029,6 +1060,10 @@ function Resolve-GameDeploymentContext($Plan, [string]$DataDir) {
     $relocatedOrder = New-Object 'System.Collections.Generic.List[string]'
     $relocatedMap = @{}
     foreach ($e in @($Plan.files)) {
+        if (Test-PreserveExternalGameResource $e $DataDir) {
+            $skippedFiles.Add([string]$e.relative_path)
+            continue
+        }
         $useExact = $true
         if ($e.relative_path -match '^\.res/([^/]+)/BundleFiles/([^/]+)$') {
             $pkg = $Matches[1]
@@ -1158,6 +1193,7 @@ function Resolve-GameDeploymentContext($Plan, [string]$DataDir) {
     }
 
     return [PSCustomObject]@{
+        SkippedFiles = @($skippedFiles.ToArray())
         ActiveGuards = @($activeGuards.ToArray())
         Items = @($resolvedItems.ToArray())
         HotfixVersions = @($hotfixVersions.ToArray())
@@ -1261,6 +1297,9 @@ function Invoke-GameCRCZH {
     Assert-GameResourceVersion -DataRoot $data -Expected ([string]$plan.resource_version)
 
     $ctx = Resolve-GameDeploymentContext $plan $data
+    if ($ctx.SkippedFiles.Count) {
+        Write-Host ('已排除共享资源校验并保留现有文件：' + $ctx.SkippedFiles.Count + ' 项。') -ForegroundColor DarkGray
+    }
     $assertGuards = {
         foreach ($g in $ctx.ActiveGuards) {
             $gp = Resolve-SafeChild $data $g.relative_path
@@ -1281,6 +1320,7 @@ function Invoke-GameCRCZH {
                 $hash = Get-FileSha256 $p
                 if ($hash -eq $e.target_sha256) { Assert-GameResource $p $e $true; $state = '汉化' }
                 elseif ($hash -eq $e.source_sha256) { Assert-GameResource $p $e $false; $state = '原版' }
+                elseif ((Test-PreviousGameResourceHash $e $hash) -and (Get-Item -LiteralPath $p).Length -eq [long]$e.size) { $state = '旧版汉化（需更新）' }
                 else { throw "文件既非原版也非本版汉化：$($e.relative_path)" }
                 Write-Host ("通过 [$state] " + $e.relative_path)
             } else {
@@ -1294,7 +1334,7 @@ function Invoke-GameCRCZH {
                 Write-Host ("通过 [$state] " + $item.TargetRelativePath)
             }
         }
-        Write-Host '完整校验通过，所有只读基线保持原字节。' -ForegroundColor Green
+        Write-Host '完整校验通过；已排除的共享资源不在校验范围内。' -ForegroundColor Green
         return 0
     }
 
@@ -1318,7 +1358,8 @@ function Invoke-GameCRCZH {
             $p = Resolve-SafeChild $data $e.relative_path
             if (-not [IO.File]::Exists($p)) { throw "游戏文件缺失：$($e.relative_path)" }
             $h = Get-FileSha256 $p
-            if ($h -ne $e.source_sha256 -and $h -ne $e.target_sha256) {
+            if ($h -ne $e.source_sha256 -and $h -ne $e.target_sha256 -and
+                -not ((Test-PreviousGameResourceHash $e $h) -and (Get-Item -LiteralPath $p).Length -eq [long]$e.size)) {
                 throw "文件版本不匹配：$($e.relative_path)"
             }
             $bk = Resolve-SafeChild $backup $e.relative_path
