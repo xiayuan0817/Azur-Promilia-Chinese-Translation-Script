@@ -619,7 +619,8 @@ try {
     }
 
     Write-Host '=================================================='
-    Write-Host '  蓝色星原：旅谣 简体汉化/尔安' -ForegroundColor Cyan
+    Write-Host '  蓝色星原：旅谣 简体汉化/尔安 ' -ForegroundColor Cyan -NoNewline
+    Write-Host '本脚本开源免费，如付费购买请退款，严禁倒卖。' -ForegroundColor Yellow
     Write-Host '  开服后若登录异常请还原文件，此脚本未进行反作弊验证' -ForegroundColor Red
     Write-Host '=================================================='
     Write-Host '正在查找游戏和启动器安装位置……'

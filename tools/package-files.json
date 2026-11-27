@@ -190,8 +190,8 @@
     },
     {
       "path": "tools/Manage-Localization.ps1",
-      "size": 39869,
-      "sha256": "e2324c7c32f259dcc9cb3145dd9bd8f9b9ce81df0652dac13a3166b393e8134b"
+      "size": 39990,
+      "sha256": "0111e3a93c183cd313dbf30fa23b33ee46787baee51f5b1e1c5e8d7e966f3945"
     },
     {
       "path": "tools/jp-deblur-deployment.json",
