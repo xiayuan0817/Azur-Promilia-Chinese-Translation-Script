@@ -1,5 +1,5 @@
 *.ps1 -text
 *.bat -text
 *.json -text
-使用说明.txt -text
+tools/日服反虚化来源.md -text
 
