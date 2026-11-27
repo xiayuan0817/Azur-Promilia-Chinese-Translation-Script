@@ -5,6 +5,7 @@
 | `Manage-Localization.ps1` | 操作菜单与任务调度 |
 | `Locate-Installations.ps1` | 查找、设置及保存安装目录 |
 | `Localization-Common.ps1` | 公共校验、备份、还原及进程检查 |
+| `Region-Identity.ps1` | 读取游戏与启动器区服 |
 | `Apply-CRCZH.ps1` | 台服游戏备份、替换、校验与还原 |
 | `Apply-JPCRCZH.ps1` | 日服游戏备份、替换、校验与还原 |
 | `Apply-JPDeblur.ps1` | 日服反虚化安装、还原及校验 |

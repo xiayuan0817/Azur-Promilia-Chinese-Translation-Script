@@ -1,213 +1,69 @@
-﻿[CmdletBinding()]
+﻿# 启动器汉化与备份还原。
+[CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)][ValidateSet('Apply', 'Restore', 'Verify', 'ValidatePayload')][string]$Action,
     [Parameter(Mandatory = $true)][ValidateSet('tw_launcher', 'jp_launcher')][string]$Target,
     [string]$Hint
 )
-Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
-[Console]::OutputEncoding = [Text.UTF8Encoding]::new($false)
+[Console]::OutputEncoding = New-Object Text.UTF8Encoding($false)
 $OutputEncoding = [Console]::OutputEncoding
-
-$commonPath = Join-Path $PSScriptRoot 'Localization-Common.ps1'
-. $commonPath
-
-function Safe([string]$Path) {
-    Assert-NoReparse $Path
-}
-
-function Hash([string]$p) {
-    return Get-FileSha256 $p
-}
-
+. (Join-Path $PSScriptRoot 'Localization-Common.ps1')
+. (Join-Path $PSScriptRoot 'Locate-Installations.ps1')
 try {
-    $module = Split-Path $PSScriptRoot -Parent
-    $planPath = Join-Path $PSScriptRoot 'launcher-deployment.json'
-    Safe $planPath
-    $plan = Get-Content -Raw -LiteralPath $planPath -Encoding UTF8 | ConvertFrom-Json
-    $entry = @($plan.launchers | Where-Object id -eq $Target)
-    if ($entry.Count -ne 1) { throw 'Invalid plan target' }
-    $entry = $entry[0]
-    if ($entry.relative_path -ne 'resources/app.asar' -or $entry.payload_dir -ne $Target -or $entry.backup_suffix -ne '.before-zhcn-20261124.bak') {
-        throw 'Unsafe plan paths'
+    $packRoot = Split-Path $PSScriptRoot -Parent
+    $plan = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'launcher-deployment.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+    $entries = @($plan.launchers | Where-Object { $_.id -eq $Target })
+    if ($entries.Count -ne 1) { throw '启动器部署清单无效。' }
+    $entry = $entries[0]
+    $region = $Target.Substring(0, 2)
+    $exe = if ($region -eq 'tw') { 'launcher.exe' } else { 'AZUPRO_JP_Gamelauncher.exe' }
+    if ($entry.relative_path -ne 'resources/app.asar' -or $entry.payload_dir -ne $Target -or $entry.exe -ne $exe -or $entry.backup_suffix -ne '.before-zhcn-20261124.bak') { throw '启动器部署区服或路径无效。' }
+    $payload = Resolve-SafeChild $packRoot ('payload/' + $Target + '/resources/app.asar')
+    if ($Action -eq 'ValidatePayload') {
+        if ((Get-FileSha256 $payload) -ne $entry.target_sha256) { throw ('补丁文件损坏：' + $payload) }
+        Write-Host ('补丁完整性检查通过：' + $Target)
+        exit 0
     }
-    foreach ($digest in @($entry.source_sha256, $entry.target_sha256) + @($entry.previous_sha256)) {
-        if ($digest -notmatch '^[a-f0-9]{64}$') { throw 'Invalid plan hash' }
-    }
-
-    $payload = Join-Path $module "payload\$Target\resources\app.asar"
-    if ($Action -in @('ValidatePayload', 'Apply')) {
-        if (-not [IO.File]::Exists($payload)) { throw "Bad payload: missing $payload" }
-        Safe $payload
-        if ((Get-Item -LiteralPath $payload).Length -ne $entry.size -or (Hash $payload) -ne $entry.target_sha256) {
-            throw 'Bad payload'
-        }
-        if ($Action -eq 'ValidatePayload') {
-            Write-Output "PAYLOAD_VALID $Target $($entry.target_sha256)"
-            exit 0
-        }
-    }
-
-    $root = $null
     if ($PSBoundParameters.ContainsKey('Hint')) {
-        if ([string]::IsNullOrWhiteSpace($Hint) -or -not [IO.Path]::IsPathRooted($Hint)) {
-            throw 'Hint must be an absolute exact launcher root'
-        }
-        $root = [IO.Path]::GetFullPath($Hint)
-        Safe $root
-        if (-not (Test-Path -LiteralPath (Join-Path $root 'resources\app.asar') -PathType Leaf)) {
-            throw 'Hint does not contain resources/app.asar; no fallback'
-        }
+        $h = $Hint.Trim().Trim('"')
+        if ([string]::IsNullOrWhiteSpace($h) -or -not [IO.Path]::IsPathRooted($h)) { throw '请指定启动器安装目录的绝对路径。' }
+        if ([IO.File]::Exists($h)) { $h = Split-Path $h -Parent }
+        $root = [IO.Path]::GetFullPath($h)
     } else {
-        $candidates = New-Object 'System.Collections.Generic.List[string]'
-        $seenCandidates = New-Object 'System.Collections.Generic.HashSet[string]' ([StringComparer]::OrdinalIgnoreCase)
-        $allowedSet = @($entry.source_sha256, $entry.target_sha256) + @($entry.previous_sha256)
-        foreach ($drive in [IO.DriveInfo]::GetDrives()) {
-            if (-not $drive.IsReady -or $drive.DriveType -ne [IO.DriveType]::Fixed) { continue }
-            foreach ($sub in $entry.search_subpaths) {
-                $base = Join-Path $drive.RootDirectory.FullName $sub
-                foreach ($candidate in @($base, (Join-Path $base $entry.version))) {
-                    $file = Join-Path $candidate 'resources\app.asar'
-                    if (Test-Path -LiteralPath $file -PathType Leaf) {
-                        Safe $candidate
-                        $fullCand = [IO.Path]::GetFullPath($candidate).TrimEnd('\')
-                        if ($seenCandidates.Contains($fullCand)) { continue }
-                        $hash = Hash $file
-                        if ($hash -in $allowedSet) {
-                            $seenCandidates.Add($fullCand) | Out-Null
-                            $candidates.Add($fullCand)
-                        }
-                    }
-                }
-            }
-        }
-        if ($candidates.Count -ne 1) {
-            throw "Expected one supported fixed-version launcher; found $($candidates.Count). Supply exact Hint."
-        }
-        $root = $candidates[0]
+        $definition = [pscustomobject]@{ Id = $Target; Label = $entry.label; Version = $entry.version; SearchSubpaths = $entry.search_subpaths }
+        $location = (Find-InstallLocations @($definition) @{})[$Target]
+        if ($location.State -ne 'found') { throw $location.Problem }
+        $root = $location.Path
     }
-
-    $exePath = Join-Path $root $entry.exe
-    Safe $exePath
-    if (-not (Test-Path -LiteralPath $exePath -PathType Leaf)) {
-        throw 'Corresponding launcher EXE required at exact root'
+    Assert-LauncherInstallRegion $root $region -AllowBackup:($Action -eq 'Restore')
+    Write-Host ('区服已确认：' + $entry.label + '  ' + $root)
+    if ($Action -eq 'Verify') { Write-Host '区服检查通过；未进行版本或全文件校验。'; exit 0 }
+    $file = Resolve-SafeChild $root $entry.relative_path
+    $backup = $file + $entry.backup_suffix
+    Assert-NoReparse $backup
+    $receipt = $backup + '.region.json'
+    $null = Get-ModuleState $receipt $Target
+    $processName = [IO.Path]::GetFileNameWithoutExtension($exe)
+    $alwaysRefuse = if ($region -eq 'jp') { @($processName) } else { @() }
+    $assertStopped = { Assert-ProcessesStopped -ProcessNames @($processName) -PathScopes @($root) -FriendlyError ('请先完全退出启动器：' + $exe) -AlwaysRefuseNames $alwaysRefuse }
+    if ($Action -eq 'Restore') {
+        if ([IO.File]::Exists($backup)) {
+            if ((Get-AsarRegion $backup) -ne $region) { throw ('启动器备份区服不符：' + $backup) }
+            $op = [pscustomobject]@{ Source = $backup; Target = $file; Backup = ''; RelativePath = $entry.relative_path }
+        } elseif ([IO.File]::Exists($backup + '.zhcn-absent')) {
+            $op = [pscustomobject]@{ Source = ''; Target = $file; Backup = ''; RelativePath = $entry.relative_path; Delete = $true }
+        } else { Write-Host ('NO_BACKUP ' + $Target + ' 未找到备份，未修改。'); exit 0 }
+    } else {
+        $op = [pscustomobject]@{ Source = $payload; Target = $file; Backup = $backup; RelativePath = $entry.relative_path; PayloadEntry = $entry }
     }
-    $file = Join-Path $root 'resources\app.asar'
-    Safe $file
-    $current = Hash $file
-    if ($current -eq $entry.target_sha256) { $state = 'CURRENT' }
-    elseif ($current -eq $entry.source_sha256) { $state = 'ORIGINAL' }
-    elseif ($current -in $entry.previous_sha256) { $state = 'PRIOR_NEEDS_UPGRADE' }
-    else { throw 'Unknown launcher version/hash' }
-
-    $backup = $null
-    $canonical = $file + $entry.backup_suffix
-    $backups = @(Get-ChildItem -LiteralPath (Split-Path $file -Parent) -Filter 'app.asar.*.bak' -Force)
-    foreach ($b in $backups) {
-        Safe $b.FullName
-        if ((Hash $b.FullName) -ne $entry.source_sha256) {
-            if ($b.FullName -eq $canonical) { throw "Bad canonical backup refused: $($b.FullName)" }
-            Write-Verbose "Skipped non-source backup: $($b.FullName)"
-            continue
-        }
-        if (-not $backup -or $b.FullName -eq $canonical) { $backup = $b.FullName }
-    }
-
-    if ($Action -eq 'Verify') {
-        Write-Output "$state $Target $current"
-        if ($state -eq 'PRIOR_NEEDS_UPGRADE') { exit 2 }
-        exit 0
-    }
-
-    $procName = [IO.Path]::GetFileNameWithoutExtension($entry.exe)
-    $launcherAlwaysRefuse = if ($procName -ne 'launcher') { @($procName) } else { @() }
-    $assertStopped = {
-        Assert-ProcessesStopped -ProcessNames @($procName) -PathScopes @($root) -FriendlyError "请先完全退出启动器：$($entry.exe)" -AlwaysRefuseNames $launcherAlwaysRefuse
-    }
-
-    if ($Action -eq 'Restore' -and $state -eq 'ORIGINAL') {
-        Write-Output "ALREADY_ORIGINAL $Target"
-        exit 0
-    }
-    if ($Action -eq 'Apply' -and $state -eq 'CURRENT') {
-        Write-Output "ALREADY_CURRENT $Target"
-        exit 0
-    }
-
-    & $assertStopped
-
-    $desired = if ($Action -eq 'Restore') { $backup } else { $payload }
-    $expected = if ($Action -eq 'Restore') { $entry.source_sha256 } else { $entry.target_sha256 }
-
-    if (-not $backup) {
-        if ($state -ne 'ORIGINAL') { throw 'Verified original backup required' }
-        Assert-FreeDiskSpace (Split-Path $file -Parent) ([long](Get-Item -LiteralPath $file).Length + [long]$entry.size)
-        Safe $canonical
-        $src = [IO.File]::Open($file, 'Open', 'Read', 'Read')
-        try {
-            $dst = [IO.File]::Open($canonical, 'CreateNew', 'Write', 'None')
-            try {
-                $src.CopyTo($dst)
-                $dst.Flush($true)
-            } finally {
-                $dst.Dispose()
-            }
-        } finally {
-            $src.Dispose()
-        }
-        if ((Hash $canonical) -ne $entry.source_sha256) { throw 'Backup verification failed' }
-        $backup = $canonical
-        if ($Action -eq 'Restore') { $desired = $backup }
-    }
-
-    $desiredSize = [long](Get-Item -LiteralPath $desired).Length
-    Assert-FreeDiskSpace (Split-Path $file -Parent) ($desiredSize * 2)
-
-    # Stage and rollback files are transient siblings needed for atomic NTFS replacement.
-    $stage = $file + '.' + [Guid]::NewGuid().ToString('N') + '.tmp'
-    $rollback = $file + '.' + [Guid]::NewGuid().ToString('N') + '.rollback'
-    $replaced = $false
-    $preserveRollback = $false
-    try {
-        Safe $stage
-        Safe $rollback
-        [IO.File]::Copy($desired, $stage, $false)
-        if ((Hash $stage) -ne $expected) { throw 'Stage verification failed' }
-        & $assertStopped
-        Safe $file
-        Safe $backup
-        if ((Hash $file) -ne $current -or (Hash $backup) -ne $entry.source_sha256) {
-            throw 'Concurrent modification detected'
-        }
-        [IO.File]::Replace($stage, $file, $rollback, $true)
-        $replaced = $true
-        if ((Hash $file) -ne $expected) { throw 'Post-replace verification failed' }
-        Write-Output "$($Action.ToUpperInvariant())_OK $Target $expected"
-    } catch {
-        if ($replaced) {
-            $preserveRollback = $true
-            Write-Warning "Attempting recovery; if recovery fails preserve snapshot at: $rollback"
-            if ((Hash $rollback) -ne $current) { throw 'Rollback damaged; manual recovery required' }
-            [IO.File]::Copy($rollback, $stage, $false)
-            [IO.File]::Replace($stage, $file, [System.Management.Automation.Language.NullString]::Value, $true)
-            if ((Hash $file) -ne $current) { throw "Rollback verification failed; recovery snapshot: $rollback" }
-            $preserveRollback = $false
-        }
-        throw
-    } finally {
-        foreach ($temp in @($stage, $rollback)) {
-            if ($temp -eq $rollback -and $preserveRollback) {
-                Write-Warning "Preserved rollback snapshot: $rollback"
-                continue
-            }
-            if (Test-Path -LiteralPath $temp) {
-                Safe $temp
-                Remove-Item -LiteralPath $temp -Force
-            }
-        }
-    }
+    $changed = Invoke-DeploymentCopies @($op) $assertStopped
+    try { Save-ModuleState $receipt $Target $Action } catch { Write-Warning ('区服记录未保存，请保留备份：' + $_.Exception.Message) }
+    if ($changed) { Write-Host ($Action.ToUpperInvariant() + '_OK ' + $Target) }
+    elseif ($Action -eq 'Restore') { Write-Host ('ALREADY_ORIGINAL ' + $Target) }
+    else { Write-Host ('ALREADY_CURRENT ' + $Target) }
+    exit 0
 } catch {
-    Write-Error $_
+    Write-Host $_.Exception.Message -ForegroundColor Red
     exit 1
 }
-

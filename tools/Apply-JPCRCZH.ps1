@@ -30,7 +30,7 @@ $config = @{
     PayloadSubdir          = 'payload/jp_game'
     SearchRelatives        = @('YostarGames\AZUPRO_JP', 'Games\YostarGames\AZUPRO_JP', 'Game\YostarGames\AZUPRO_JP', 'AZUPRO_JP')
     HintRelatives          = @('AZUPRO_JP', 'YostarGames\AZUPRO_JP')
-    MenuTitle              = '日服简体汉化（清单只读、等长、原 CRC）'
+    MenuTitle              = '日服简体汉化'
     NotFoundMsg            = '没有找到日服游戏。请把游戏文件夹拖到 BAT 上，或使用 -Hint 指定安装目录。'
 }
 

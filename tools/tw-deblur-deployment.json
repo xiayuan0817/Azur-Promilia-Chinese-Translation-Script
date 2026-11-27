@@ -1,7 +1,7 @@
 {
   "format": 1,
   "region": "tw",
-  "resource_version": "3221746",
+  "resource_version": "3273850",
   "builtin_version": "3060618",
   "files": [
     {
@@ -10,764 +10,7 @@
       "target_sha256": "60f10aa4dc23b90a55f491265cb88e5ac5e4d814c23a3e975d1b0074dd151433",
       "size": 5242352,
       "crc32": 1170051029,
-      "segments": [
-        {
-          "bundle_index": 236815,
-          "offset": 0,
-          "size": 1395596,
-          "crc32": 443573218
-        },
-        {
-          "bundle_index": 236816,
-          "offset": 1395596,
-          "size": 1936,
-          "crc32": 3572580072
-        },
-        {
-          "bundle_index": 236817,
-          "offset": 1397532,
-          "size": 1965,
-          "crc32": 781997845
-        },
-        {
-          "bundle_index": 236818,
-          "offset": 1399497,
-          "size": 3336,
-          "crc32": 939236048
-        },
-        {
-          "bundle_index": 236819,
-          "offset": 1402833,
-          "size": 3807,
-          "crc32": 1776587328
-        },
-        {
-          "bundle_index": 236820,
-          "offset": 1406640,
-          "size": 1803,
-          "crc32": 1480792962
-        },
-        {
-          "bundle_index": 236821,
-          "offset": 1408443,
-          "size": 1803,
-          "crc32": 881704848
-        },
-        {
-          "bundle_index": 236822,
-          "offset": 1410246,
-          "size": 2859,
-          "crc32": 4143205838
-        },
-        {
-          "bundle_index": 236823,
-          "offset": 1413105,
-          "size": 28584,
-          "crc32": 392242310
-        },
-        {
-          "bundle_index": 236824,
-          "offset": 1441689,
-          "size": 1924,
-          "crc32": 3885934309
-        },
-        {
-          "bundle_index": 236825,
-          "offset": 1443613,
-          "size": 4587,
-          "crc32": 3202368065
-        },
-        {
-          "bundle_index": 236826,
-          "offset": 1448200,
-          "size": 2841,
-          "crc32": 3066803269
-        },
-        {
-          "bundle_index": 236827,
-          "offset": 1451041,
-          "size": 2836,
-          "crc32": 1888131538
-        },
-        {
-          "bundle_index": 236828,
-          "offset": 1453877,
-          "size": 1924,
-          "crc32": 1382767702
-        },
-        {
-          "bundle_index": 236829,
-          "offset": 1455801,
-          "size": 2804,
-          "crc32": 3744471762
-        },
-        {
-          "bundle_index": 236830,
-          "offset": 1458605,
-          "size": 3885,
-          "crc32": 3017228039
-        },
-        {
-          "bundle_index": 236831,
-          "offset": 1462490,
-          "size": 2898,
-          "crc32": 2643813243
-        },
-        {
-          "bundle_index": 236832,
-          "offset": 1465388,
-          "size": 6892,
-          "crc32": 392680699
-        },
-        {
-          "bundle_index": 236833,
-          "offset": 1472280,
-          "size": 1933,
-          "crc32": 3595630528
-        },
-        {
-          "bundle_index": 236834,
-          "offset": 1474213,
-          "size": 4627,
-          "crc32": 2576314695
-        },
-        {
-          "bundle_index": 236835,
-          "offset": 1478840,
-          "size": 1925,
-          "crc32": 734022519
-        },
-        {
-          "bundle_index": 236836,
-          "offset": 1480765,
-          "size": 1927,
-          "crc32": 3974062116
-        },
-        {
-          "bundle_index": 236837,
-          "offset": 1482692,
-          "size": 1951,
-          "crc32": 2021344471
-        },
-        {
-          "bundle_index": 236838,
-          "offset": 1484643,
-          "size": 32324,
-          "crc32": 2631371821
-        },
-        {
-          "bundle_index": 236839,
-          "offset": 1516967,
-          "size": 3108,
-          "crc32": 2757952475
-        },
-        {
-          "bundle_index": 236840,
-          "offset": 1520075,
-          "size": 13554,
-          "crc32": 1976631062
-        },
-        {
-          "bundle_index": 236841,
-          "offset": 1533629,
-          "size": 6416,
-          "crc32": 3041388258
-        },
-        {
-          "bundle_index": 236842,
-          "offset": 1540045,
-          "size": 13578,
-          "crc32": 4178588230
-        },
-        {
-          "bundle_index": 236843,
-          "offset": 1553623,
-          "size": 27893,
-          "crc32": 2634469898
-        },
-        {
-          "bundle_index": 236844,
-          "offset": 1581516,
-          "size": 25699,
-          "crc32": 2821874562
-        },
-        {
-          "bundle_index": 236845,
-          "offset": 1607215,
-          "size": 18075,
-          "crc32": 3284259860
-        },
-        {
-          "bundle_index": 236846,
-          "offset": 1625290,
-          "size": 18230,
-          "crc32": 4169890795
-        },
-        {
-          "bundle_index": 236847,
-          "offset": 1643520,
-          "size": 27224,
-          "crc32": 3502319758
-        },
-        {
-          "bundle_index": 236848,
-          "offset": 1670744,
-          "size": 236928,
-          "crc32": 1902637415
-        },
-        {
-          "bundle_index": 236849,
-          "offset": 1907672,
-          "size": 7337,
-          "crc32": 498641807
-        },
-        {
-          "bundle_index": 236850,
-          "offset": 1915009,
-          "size": 8332,
-          "crc32": 4192199091
-        },
-        {
-          "bundle_index": 236851,
-          "offset": 1923341,
-          "size": 26476,
-          "crc32": 977491506
-        },
-        {
-          "bundle_index": 236852,
-          "offset": 1949817,
-          "size": 2292,
-          "crc32": 3308165079
-        },
-        {
-          "bundle_index": 236853,
-          "offset": 1952109,
-          "size": 225198,
-          "crc32": 3384372600
-        },
-        {
-          "bundle_index": 236854,
-          "offset": 2177307,
-          "size": 225367,
-          "crc32": 4259273132
-        },
-        {
-          "bundle_index": 236855,
-          "offset": 2402674,
-          "size": 225126,
-          "crc32": 219051766
-        },
-        {
-          "bundle_index": 236856,
-          "offset": 2627800,
-          "size": 225089,
-          "crc32": 1743244521
-        },
-        {
-          "bundle_index": 236857,
-          "offset": 2852889,
-          "size": 226040,
-          "crc32": 4120785740
-        },
-        {
-          "bundle_index": 236858,
-          "offset": 3078929,
-          "size": 225118,
-          "crc32": 986222224
-        },
-        {
-          "bundle_index": 236859,
-          "offset": 3304047,
-          "size": 284200,
-          "crc32": 1687819750
-        },
-        {
-          "bundle_index": 236860,
-          "offset": 3588247,
-          "size": 226128,
-          "crc32": 3503058699
-        },
-        {
-          "bundle_index": 236861,
-          "offset": 3814375,
-          "size": 226100,
-          "crc32": 302852714
-        },
-        {
-          "bundle_index": 236862,
-          "offset": 4040475,
-          "size": 225169,
-          "crc32": 3031743238
-        },
-        {
-          "bundle_index": 236863,
-          "offset": 4265644,
-          "size": 2521,
-          "crc32": 3704882969
-        },
-        {
-          "bundle_index": 236864,
-          "offset": 4268165,
-          "size": 8742,
-          "crc32": 3562265655
-        },
-        {
-          "bundle_index": 236865,
-          "offset": 4276907,
-          "size": 8706,
-          "crc32": 819941432
-        },
-        {
-          "bundle_index": 236866,
-          "offset": 4285613,
-          "size": 4227,
-          "crc32": 4260750329
-        },
-        {
-          "bundle_index": 236867,
-          "offset": 4289840,
-          "size": 5918,
-          "crc32": 819221262
-        },
-        {
-          "bundle_index": 236868,
-          "offset": 4295758,
-          "size": 6011,
-          "crc32": 3618904736
-        },
-        {
-          "bundle_index": 236869,
-          "offset": 4301769,
-          "size": 5942,
-          "crc32": 933200943
-        },
-        {
-          "bundle_index": 236870,
-          "offset": 4307711,
-          "size": 4220,
-          "crc32": 3877938683
-        },
-        {
-          "bundle_index": 236871,
-          "offset": 4311931,
-          "size": 7175,
-          "crc32": 1160173896
-        },
-        {
-          "bundle_index": 236872,
-          "offset": 4319106,
-          "size": 6326,
-          "crc32": 358268782
-        },
-        {
-          "bundle_index": 236873,
-          "offset": 4325432,
-          "size": 12608,
-          "crc32": 3718754875
-        },
-        {
-          "bundle_index": 236874,
-          "offset": 4338040,
-          "size": 12636,
-          "crc32": 1419318824
-        },
-        {
-          "bundle_index": 236875,
-          "offset": 4350676,
-          "size": 10179,
-          "crc32": 2318098701
-        },
-        {
-          "bundle_index": 236876,
-          "offset": 4360855,
-          "size": 10056,
-          "crc32": 3855313678
-        },
-        {
-          "bundle_index": 236877,
-          "offset": 4370911,
-          "size": 6582,
-          "crc32": 3979909805
-        },
-        {
-          "bundle_index": 236878,
-          "offset": 4377493,
-          "size": 6114,
-          "crc32": 2497751263
-        },
-        {
-          "bundle_index": 236879,
-          "offset": 4383607,
-          "size": 5703,
-          "crc32": 3871670088
-        },
-        {
-          "bundle_index": 236880,
-          "offset": 4389310,
-          "size": 59629,
-          "crc32": 3519615464
-        },
-        {
-          "bundle_index": 236881,
-          "offset": 4448939,
-          "size": 8147,
-          "crc32": 604105702
-        },
-        {
-          "bundle_index": 236882,
-          "offset": 4457086,
-          "size": 41297,
-          "crc32": 3047118597
-        },
-        {
-          "bundle_index": 236883,
-          "offset": 4498383,
-          "size": 35285,
-          "crc32": 50830309
-        },
-        {
-          "bundle_index": 236884,
-          "offset": 4533668,
-          "size": 4725,
-          "crc32": 972733495
-        },
-        {
-          "bundle_index": 236885,
-          "offset": 4538393,
-          "size": 10212,
-          "crc32": 78562842
-        },
-        {
-          "bundle_index": 236886,
-          "offset": 4548605,
-          "size": 8725,
-          "crc32": 3259585019
-        },
-        {
-          "bundle_index": 236887,
-          "offset": 4557330,
-          "size": 8721,
-          "crc32": 2386339718
-        },
-        {
-          "bundle_index": 236888,
-          "offset": 4566051,
-          "size": 45204,
-          "crc32": 3276887222
-        },
-        {
-          "bundle_index": 236889,
-          "offset": 4611255,
-          "size": 45623,
-          "crc32": 522628090
-        },
-        {
-          "bundle_index": 236890,
-          "offset": 4656878,
-          "size": 11663,
-          "crc32": 682072320
-        },
-        {
-          "bundle_index": 236891,
-          "offset": 4668541,
-          "size": 4528,
-          "crc32": 913076132
-        },
-        {
-          "bundle_index": 236892,
-          "offset": 4673069,
-          "size": 4544,
-          "crc32": 2644407849
-        },
-        {
-          "bundle_index": 236893,
-          "offset": 4677613,
-          "size": 4540,
-          "crc32": 1185438659
-        },
-        {
-          "bundle_index": 236894,
-          "offset": 4682153,
-          "size": 5810,
-          "crc32": 2080587358
-        },
-        {
-          "bundle_index": 236895,
-          "offset": 4687963,
-          "size": 8167,
-          "crc32": 3117368437
-        },
-        {
-          "bundle_index": 236896,
-          "offset": 4696130,
-          "size": 8154,
-          "crc32": 1965851422
-        },
-        {
-          "bundle_index": 236897,
-          "offset": 4704284,
-          "size": 72728,
-          "crc32": 2272286963
-        },
-        {
-          "bundle_index": 236898,
-          "offset": 4777012,
-          "size": 71201,
-          "crc32": 1837580516
-        },
-        {
-          "bundle_index": 236899,
-          "offset": 4848213,
-          "size": 76584,
-          "crc32": 1289156775
-        },
-        {
-          "bundle_index": 236900,
-          "offset": 4924797,
-          "size": 9603,
-          "crc32": 2311202091
-        },
-        {
-          "bundle_index": 236901,
-          "offset": 4934400,
-          "size": 9592,
-          "crc32": 1820679260
-        },
-        {
-          "bundle_index": 236902,
-          "offset": 4943992,
-          "size": 37186,
-          "crc32": 3696496613
-        },
-        {
-          "bundle_index": 236903,
-          "offset": 4981178,
-          "size": 36553,
-          "crc32": 2899831749
-        },
-        {
-          "bundle_index": 236904,
-          "offset": 5017731,
-          "size": 39170,
-          "crc32": 937573214
-        },
-        {
-          "bundle_index": 236905,
-          "offset": 5056901,
-          "size": 2722,
-          "crc32": 2227783362
-        },
-        {
-          "bundle_index": 236906,
-          "offset": 5059623,
-          "size": 1784,
-          "crc32": 3352927177
-        },
-        {
-          "bundle_index": 236907,
-          "offset": 5061407,
-          "size": 5228,
-          "crc32": 1981484466
-        },
-        {
-          "bundle_index": 236908,
-          "offset": 5066635,
-          "size": 29347,
-          "crc32": 985159895
-        },
-        {
-          "bundle_index": 236909,
-          "offset": 5095982,
-          "size": 3143,
-          "crc32": 1387944122
-        },
-        {
-          "bundle_index": 236910,
-          "offset": 5099125,
-          "size": 2261,
-          "crc32": 3958070947
-        },
-        {
-          "bundle_index": 236911,
-          "offset": 5101386,
-          "size": 2791,
-          "crc32": 1484172367
-        },
-        {
-          "bundle_index": 236912,
-          "offset": 5104177,
-          "size": 2364,
-          "crc32": 990181254
-        },
-        {
-          "bundle_index": 236913,
-          "offset": 5106541,
-          "size": 7955,
-          "crc32": 1218299186
-        },
-        {
-          "bundle_index": 236914,
-          "offset": 5114496,
-          "size": 7448,
-          "crc32": 1901628882
-        },
-        {
-          "bundle_index": 236915,
-          "offset": 5121944,
-          "size": 2026,
-          "crc32": 1702810149
-        },
-        {
-          "bundle_index": 236916,
-          "offset": 5123970,
-          "size": 2137,
-          "crc32": 827646164
-        },
-        {
-          "bundle_index": 236917,
-          "offset": 5126107,
-          "size": 2140,
-          "crc32": 1124106217
-        },
-        {
-          "bundle_index": 236918,
-          "offset": 5128247,
-          "size": 11390,
-          "crc32": 1600132872
-        },
-        {
-          "bundle_index": 236919,
-          "offset": 5139637,
-          "size": 2279,
-          "crc32": 3266960205
-        },
-        {
-          "bundle_index": 236920,
-          "offset": 5141916,
-          "size": 2282,
-          "crc32": 3164016134
-        },
-        {
-          "bundle_index": 236921,
-          "offset": 5144198,
-          "size": 3168,
-          "crc32": 48763000
-        },
-        {
-          "bundle_index": 236922,
-          "offset": 5147366,
-          "size": 4400,
-          "crc32": 2690740917
-        },
-        {
-          "bundle_index": 236923,
-          "offset": 5151766,
-          "size": 4445,
-          "crc32": 3041795865
-        },
-        {
-          "bundle_index": 236924,
-          "offset": 5156211,
-          "size": 2158,
-          "crc32": 2723615579
-        },
-        {
-          "bundle_index": 236925,
-          "offset": 5158369,
-          "size": 4107,
-          "crc32": 812440550
-        },
-        {
-          "bundle_index": 236926,
-          "offset": 5162476,
-          "size": 4735,
-          "crc32": 550193439
-        },
-        {
-          "bundle_index": 236927,
-          "offset": 5167211,
-          "size": 4413,
-          "crc32": 430388732
-        },
-        {
-          "bundle_index": 236928,
-          "offset": 5171624,
-          "size": 6447,
-          "crc32": 1882784501
-        },
-        {
-          "bundle_index": 236929,
-          "offset": 5178071,
-          "size": 5147,
-          "crc32": 3180458044
-        },
-        {
-          "bundle_index": 236930,
-          "offset": 5183218,
-          "size": 6778,
-          "crc32": 437240313
-        },
-        {
-          "bundle_index": 236931,
-          "offset": 5189996,
-          "size": 5447,
-          "crc32": 855142968
-        },
-        {
-          "bundle_index": 236932,
-          "offset": 5195443,
-          "size": 5563,
-          "crc32": 1772755848
-        },
-        {
-          "bundle_index": 236933,
-          "offset": 5201006,
-          "size": 5900,
-          "crc32": 2061227713
-        },
-        {
-          "bundle_index": 236934,
-          "offset": 5206906,
-          "size": 6261,
-          "crc32": 2845002213
-        },
-        {
-          "bundle_index": 236935,
-          "offset": 5213167,
-          "size": 3968,
-          "crc32": 875069327
-        },
-        {
-          "bundle_index": 236936,
-          "offset": 5217135,
-          "size": 5375,
-          "crc32": 2675457901
-        },
-        {
-          "bundle_index": 236937,
-          "offset": 5222510,
-          "size": 3983,
-          "crc32": 864701347
-        },
-        {
-          "bundle_index": 236938,
-          "offset": 5226493,
-          "size": 5047,
-          "crc32": 1205327326
-        },
-        {
-          "bundle_index": 236939,
-          "offset": 5231540,
-          "size": 5396,
-          "crc32": 1020611761
-        },
-        {
-          "bundle_index": 236940,
-          "offset": 5236936,
-          "size": 5416,
-          "crc32": 179045794
-        }
-      ]
+      "segments": []
     },
     {
       "relative_path": "StreamingAssets/.res/default_package/s6ppge3l6q1q9htrof7qcq.r",
@@ -10629,25 +9872,463 @@
           "crc32": 179045794
         }
       ]
+    },
+    {
+      "relative_path": ".res/default_package/BundleFiles/995kpf4cm71no6pm0e2w.r",
+      "source_sha256": "ff18717d6a1c623b95e25350b04d9e4cfe4ba89846d7778d8837eb187f373f19",
+      "target_sha256": "242707391d2be29d9a211e4103427d91f968617dd72e3bff2b9d5c8e769e18f6",
+      "size": 5197750,
+      "crc32": 3102548556
+    },
+    {
+      "relative_path": ".res/default_package/ManifestFiles/0release_default_package_3273850.bytes",
+      "source_sha256": "464f1b7a0c0ec5f1b38f27a814a127f61b6ec2bb1d8e4e5ba8cbcd0407d91195",
+      "target_sha256": "74265e711fd4d655da3960076885b22f66e8a6b9c30c4702665d6e4a32ae1496",
+      "size": 55592978,
+      "crc32": 4256847304,
+      "manifest_ranges": [
+        {
+          "offset": 36110530,
+          "length": 2,
+          "target_hex": "6122"
+        },
+        {
+          "offset": 36110538,
+          "length": 4,
+          "target_hex": "c4e06dfa"
+        },
+        {
+          "offset": 36110622,
+          "length": 2,
+          "target_hex": "f7a0"
+        },
+        {
+          "offset": 36110678,
+          "length": 2,
+          "target_hex": "7b73"
+        },
+        {
+          "offset": 36110734,
+          "length": 2,
+          "target_hex": "7209"
+        },
+        {
+          "offset": 36110790,
+          "length": 2,
+          "target_hex": "8748"
+        },
+        {
+          "offset": 36110846,
+          "length": 2,
+          "target_hex": "c770"
+        },
+        {
+          "offset": 36110902,
+          "length": 2,
+          "target_hex": "e3a9"
+        },
+        {
+          "offset": 36110958,
+          "length": 2,
+          "target_hex": "ddc3"
+        },
+        {
+          "offset": 36111014,
+          "length": 2,
+          "target_hex": "4bf4"
+        },
+        {
+          "offset": 36111070,
+          "length": 2,
+          "target_hex": "833c"
+        },
+        {
+          "offset": 36111126,
+          "length": 2,
+          "target_hex": "fd4e"
+        },
+        {
+          "offset": 36111182,
+          "length": 2,
+          "target_hex": "7a89"
+        },
+        {
+          "offset": 36111238,
+          "length": 2,
+          "target_hex": "af91"
+        },
+        {
+          "offset": 36111294,
+          "length": 2,
+          "target_hex": "b9b6"
+        },
+        {
+          "offset": 36111350,
+          "length": 2,
+          "target_hex": "6b59"
+        },
+        {
+          "offset": 36111406,
+          "length": 2,
+          "target_hex": "4cc2"
+        },
+        {
+          "offset": 36111462,
+          "length": 2,
+          "target_hex": "b2e0"
+        },
+        {
+          "offset": 36111518,
+          "length": 2,
+          "target_hex": "ec3f"
+        },
+        {
+          "offset": 36111574,
+          "length": 2,
+          "target_hex": "c67a"
+        },
+        {
+          "offset": 36111630,
+          "length": 2,
+          "target_hex": "64a7"
+        },
+        {
+          "offset": 36111686,
+          "length": 2,
+          "target_hex": "e9d3"
+        },
+        {
+          "offset": 36111742,
+          "length": 2,
+          "target_hex": "82f7"
+        },
+        {
+          "offset": 36111798,
+          "length": 2,
+          "target_hex": "1226"
+        },
+        {
+          "offset": 36111854,
+          "length": 2,
+          "target_hex": "2a48"
+        },
+        {
+          "offset": 36111910,
+          "length": 2,
+          "target_hex": "db6d"
+        },
+        {
+          "offset": 36111966,
+          "length": 2,
+          "target_hex": "ac8f"
+        },
+        {
+          "offset": 36112022,
+          "length": 2,
+          "target_hex": "5b40"
+        },
+        {
+          "offset": 36112078,
+          "length": 2,
+          "target_hex": "f67a"
+        },
+        {
+          "offset": 36112134,
+          "length": 2,
+          "target_hex": "dbab"
+        },
+        {
+          "offset": 36112190,
+          "length": 2,
+          "target_hex": "bd31"
+        },
+        {
+          "offset": 36112246,
+          "length": 2,
+          "target_hex": "155d"
+        },
+        {
+          "offset": 36112302,
+          "length": 2,
+          "target_hex": "d18b"
+        },
+        {
+          "offset": 36112358,
+          "length": 2,
+          "target_hex": "b0c6"
+        },
+        {
+          "offset": 36112414,
+          "length": 3,
+          "target_hex": "c80134"
+        },
+        {
+          "offset": 36112470,
+          "length": 2,
+          "target_hex": "d047"
+        },
+        {
+          "offset": 36112526,
+          "length": 2,
+          "target_hex": "ab72"
+        },
+        {
+          "offset": 36112582,
+          "length": 2,
+          "target_hex": "c2bf"
+        },
+        {
+          "offset": 36112638,
+          "length": 2,
+          "target_hex": "a0f8"
+        },
+        {
+          "offset": 36112694,
+          "length": 2,
+          "target_hex": "2040"
+        },
+        {
+          "offset": 36112750,
+          "length": 2,
+          "target_hex": "0f79"
+        },
+        {
+          "offset": 36112806,
+          "length": 2,
+          "target_hex": "4fc6"
+        },
+        {
+          "offset": 36112862,
+          "length": 3,
+          "target_hex": "af0436"
+        },
+        {
+          "offset": 36112918,
+          "length": 2,
+          "target_hex": "2940"
+        },
+        {
+          "offset": 36112974,
+          "length": 2,
+          "target_hex": "7d94"
+        },
+        {
+          "offset": 36113030,
+          "length": 2,
+          "target_hex": "d2dd"
+        },
+        {
+          "offset": 36113086,
+          "length": 2,
+          "target_hex": "ec5d"
+        },
+        {
+          "offset": 36113142,
+          "length": 2,
+          "target_hex": "120c"
+        },
+        {
+          "offset": 36113198,
+          "length": 2,
+          "target_hex": "403c"
+        },
+        {
+          "offset": 36113254,
+          "length": 2,
+          "target_hex": "fdc0"
+        },
+        {
+          "offset": 36113310,
+          "length": 2,
+          "target_hex": "1ef1"
+        },
+        {
+          "offset": 36113366,
+          "length": 2,
+          "target_hex": "2d2c"
+        },
+        {
+          "offset": 36113422,
+          "length": 2,
+          "target_hex": "4e52"
+        },
+        {
+          "offset": 36113478,
+          "length": 2,
+          "target_hex": "4b65"
+        },
+        {
+          "offset": 36113534,
+          "length": 2,
+          "target_hex": "3686"
+        },
+        {
+          "offset": 36113590,
+          "length": 2,
+          "target_hex": "e4b6"
+        },
+        {
+          "offset": 36113646,
+          "length": 2,
+          "target_hex": "dc65"
+        },
+        {
+          "offset": 36113702,
+          "length": 2,
+          "target_hex": "3bb3"
+        },
+        {
+          "offset": 36113758,
+          "length": 2,
+          "target_hex": "4be5"
+        },
+        {
+          "offset": 36113814,
+          "length": 2,
+          "target_hex": "e1f8"
+        },
+        {
+          "offset": 36113870,
+          "length": 2,
+          "target_hex": "ffb6"
+        },
+        {
+          "offset": 36113926,
+          "length": 2,
+          "target_hex": "6388"
+        },
+        {
+          "offset": 36113982,
+          "length": 2,
+          "target_hex": "71a5"
+        },
+        {
+          "offset": 36114038,
+          "length": 2,
+          "target_hex": "cb31"
+        },
+        {
+          "offset": 36114094,
+          "length": 2,
+          "target_hex": "b85c"
+        },
+        {
+          "offset": 36114150,
+          "length": 2,
+          "target_hex": "5575"
+        },
+        {
+          "offset": 36114206,
+          "length": 2,
+          "target_hex": "1c82"
+        },
+        {
+          "offset": 36114262,
+          "length": 2,
+          "target_hex": "e24a"
+        },
+        {
+          "offset": 36114318,
+          "length": 2,
+          "target_hex": "7264"
+        },
+        {
+          "offset": 36114374,
+          "length": 2,
+          "target_hex": "4aef"
+        },
+        {
+          "offset": 36114430,
+          "length": 2,
+          "target_hex": "49bc"
+        },
+        {
+          "offset": 36114486,
+          "length": 3,
+          "target_hex": "920445"
+        },
+        {
+          "offset": 36114542,
+          "length": 2,
+          "target_hex": "8e94"
+        },
+        {
+          "offset": 36114598,
+          "length": 2,
+          "target_hex": "9d3f"
+        },
+        {
+          "offset": 36114654,
+          "length": 2,
+          "target_hex": "2d8e"
+        },
+        {
+          "offset": 36114710,
+          "length": 2,
+          "target_hex": "bc17"
+        },
+        {
+          "offset": 36114766,
+          "length": 2,
+          "target_hex": "8ad5"
+        },
+        {
+          "offset": 36114822,
+          "length": 2,
+          "target_hex": "de84"
+        },
+        {
+          "offset": 36114878,
+          "length": 2,
+          "target_hex": "e716"
+        },
+        {
+          "offset": 36114934,
+          "length": 2,
+          "target_hex": "c9a4"
+        },
+        {
+          "offset": 36114990,
+          "length": 2,
+          "target_hex": "c16f"
+        },
+        {
+          "offset": 36115046,
+          "length": 2,
+          "target_hex": "b70d"
+        },
+        {
+          "offset": 36115102,
+          "length": 2,
+          "target_hex": "184a"
+        },
+        {
+          "offset": 36115158,
+          "length": 3,
+          "target_hex": "41004e"
+        },
+        {
+          "offset": 55164274,
+          "length": 2,
+          "target_hex": "b64f"
+        },
+        {
+          "offset": 55164286,
+          "length": 4,
+          "target_hex": "4c22edb8"
+        }
+      ]
+    },
+    {
+      "relative_path": ".res/default_package/ManifestFiles/0release_default_package_3273850.hash",
+      "source_sha256": "c6f891fc26f03827832b1b01b312c9d09a245a9c9a54e98a5e8da7023473e929",
+      "target_sha256": "a07426c499b9299c98cc59629df4daec4b3788a20d8028b17aa15114266018a4",
+      "size": 32,
+      "crc32": 3541679772,
+      "manifest_hash_for": ".res/default_package/ManifestFiles/0release_default_package_3273850.bytes"
     }
   ],
-  "readonly_files": [
-    {
-      "relative_path": "StreamingAssets/.res/default_package/0release_default_package_3060618.bytes",
-      "sha256": "713b59fac4d4b40bb0ca5cfdf7a047ec846b329c972428831c25bd9c3aac02af"
-    },
-    {
-      "relative_path": "StreamingAssets/.res/default_package/0release_default_package_3060618.hash",
-      "sha256": "b95a3ae32bd0089686205966c7e1d8b3e2bd782856faf38daf1e67efe257b648"
-    },
-    {
-      "relative_path": ".res/default_package/ManifestFiles/0release_default_package_3221746.bytes",
-      "sha256": "e6ad7b2c2c75c56bbf930a81d7e1d9aa616da635fa3ba8570167c574fd1ed295"
-    },
-    {
-      "relative_path": ".res/default_package/ManifestFiles/0release_default_package_3221746.hash",
-      "sha256": "dc234a6692d99ef59d750107fac5c0e912f3b2918e4cd71d6c0556cdfde4c766"
-    }
-  ],
-  "runtime_login_verified": false
+  "readonly_files": [],
+  "runtime_login_verified": false,
+  "backup_dir": ".tw-deblur-3273850-backup"
 }

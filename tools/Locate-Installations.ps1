@@ -1,4 +1,4 @@
-﻿# Read-only installation discovery. No game processes are started or stopped.
+﻿# 查找游戏和启动器安装目录。
 if (-not (Get-Command Assert-NoReparse -ErrorAction SilentlyContinue)) {
     . (Join-Path $PSScriptRoot 'Localization-Common.ps1')
 }
@@ -6,15 +6,19 @@ if (-not (Get-Command Assert-NoReparse -ErrorAction SilentlyContinue)) {
 function Test-InstallRoot([string]$Id, [string]$Path) {
     if ([string]::IsNullOrWhiteSpace($Path) -or -not [IO.Path]::IsPathRooted($Path)) { return $false }
     Assert-NoReparse $Path
-    switch ($Id) {
-        'tw_game' { return ([IO.File]::Exists((Join-Path $Path 'AzurPromilia.exe')) -and [IO.Directory]::Exists((Join-Path $Path 'AzurPromilia_Data'))) }
-        'jp_deblur' { return (Test-InstallRoot 'jp_game' $Path) }
-        'tw_deblur' { return (Test-InstallRoot 'tw_game' $Path) }
-        'jp_game' { return ([IO.File]::Exists((Join-Path $Path 'AzurPromiliaJP.exe')) -and [IO.Directory]::Exists((Join-Path $Path 'AzurPromiliaJP_Data'))) }
-        'tw_launcher' { return ([IO.File]::Exists((Join-Path $Path 'launcher.exe')) -and [IO.File]::Exists((Join-Path $Path 'resources/app.asar'))) }
-        'jp_launcher' { return ([IO.File]::Exists((Join-Path $Path 'AZUPRO_JP_Gamelauncher.exe')) -and [IO.File]::Exists((Join-Path $Path 'resources/app.asar'))) }
+    $region = $Id.Substring(0, 2)
+    if ($Id.EndsWith('_launcher')) {
+        $exe = if ($region -eq 'tw') { 'launcher.exe' } else { 'AZUPRO_JP_Gamelauncher.exe' }
+        if (-not [IO.File]::Exists((Join-Path $Path $exe)) -and -not [IO.File]::Exists((Join-Path $Path 'resources/app.asar.before-zhcn-20261124.bak'))) { return $false }
+        return ((Get-LauncherInstallRegion $Path -AllowBackup) -eq $region)
     }
-    return $false
+    $exe = if ($region -eq 'tw') { 'AzurPromilia.exe' } else { 'AzurPromiliaJP.exe' }
+    $data = if ($region -eq 'tw') { 'AzurPromilia_Data' } else { 'AzurPromiliaJP_Data' }
+    $backupNames = if ($region -eq 'tw') { @('.zhcn-crc-readonly-3221745-backup', '.tw-deblur-3221746-backup') } else { @('.zhcn-jp-crc-readonly-3219598-backup', '.jp-deblur-1.0.2-backup') }
+    $hasBackup = @($backupNames | Where-Object { [IO.Directory]::Exists((Join-Path $Path $_)) }).Count -gt 0
+    if (-not $hasBackup) { $hasBackup = @(Get-ChildItem -LiteralPath $Path -Directory -Force -ErrorAction SilentlyContinue | Where-Object { $_.Name -match ('^\.(?:zhcn-' + $region + '|' + $region + '-deblur)-\d+-backup$') }).Count -gt 0 }
+    if ((-not [IO.File]::Exists((Join-Path $Path $exe)) -or -not [IO.Directory]::Exists((Join-Path $Path $data))) -and -not $hasBackup) { return $false }
+    return ((Get-GameInstallRegion $Path -AllowBackup) -eq $region)
 }
 
 function Add-UniqueRoot([System.Collections.Generic.List[string]]$List, [System.Collections.Generic.HashSet[string]]$Seen, [string]$Path) {
@@ -158,7 +162,6 @@ function Find-InstallLocations($Definitions, [hashtable]$ConfiguredPaths, [strin
         $matchesFound = New-Object 'System.Collections.Generic.List[string]'
         $seenMatches = New-Object 'System.Collections.Generic.HashSet[string]' ([StringComparer]::OrdinalIgnoreCase)
         $problem = $null
-        $allowedHashes = if ($d.PSObject.Properties['AllowedHashes']) { $d.AllowedHashes } else { $null }
 
         if (-not [string]::IsNullOrWhiteSpace($configured)) {
             try {
@@ -180,10 +183,6 @@ function Find-InstallLocations($Definitions, [hashtable]$ConfiguredPaths, [strin
                         $p = [IO.Path]::GetFullPath($p).TrimEnd('\')
                         if ($seenMatches.Contains($p)) { continue }
                         if (-not (Test-InstallRoot $d.Id $p)) { continue }
-                        if ($d.Id.EndsWith('_launcher') -and $allowedHashes) {
-                            $asarHash = Get-FileSha256 (Join-Path $p 'resources\app.asar')
-                            if ($asarHash -notin $allowedHashes) { continue }
-                        }
                         if ($seenMatches.Add($p)) { $matchesFound.Add($p) }
                     } catch {}
                 }
@@ -195,8 +194,8 @@ function Find-InstallLocations($Definitions, [hashtable]$ConfiguredPaths, [strin
         $state = 'missing'
         if ($problem) { $state = 'invalid' }
         elseif ($found.Count -eq 1) { $state = 'found'; $path = $found[0] }
-        elseif ($found.Count -gt 1) { $state = 'ambiguous'; $problem = '找到多个安装，请在安装路径.json 中指定：' + ($found -join '；') }
-        else { $problem = '未找到，请在安装路径.json 中填写实际安装目录。' }
+        elseif ($found.Count -gt 1) { $state = 'ambiguous'; $problem = '找到多个安装目录，请选择或指定其中一个：' + ($found -join '；') }
+        else { $problem = '未找到，请使用菜单 7 指定安装目录。' }
         $result[$d.Id] = [pscustomobject]@{
             Id         = $d.Id
             Label      = $d.Label
