@@ -23,6 +23,7 @@ CORE_NON_PAYLOAD_PATHS = [
     'tools/launcher-deployment.json',
     'tools/Locate-Installations.ps1',
     'tools/Manage-Localization.ps1',
+    'tools/Update-Localization.ps1',
     'tools/tw-deployment.json',
     '使用说明.txt',
     '双击运行.bat',
@@ -90,11 +91,12 @@ def archive(path, entries, prefix):
             tmp.unlink()
 
 
-def refresh_manifest(payload_root=None):
+def refresh_manifest(payload_root=None, version='v6'):
     manifest_path = ROOT / 'tools/package-files.json'
     catalog = json.loads(manifest_path.read_text('utf-8-sig'))
     if catalog.get('format') != 1 or catalog.get('hash') != 'SHA256':
         raise ValueError('文件清单格式无效')
+    catalog['version'] = version
 
     by_path = {}
     for item in catalog['files']:
@@ -170,13 +172,13 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--payload', type=Path, help='完整包中的 payload 文件夹')
     parser.add_argument('--output', type=Path, default=ROOT / 'dist')
-    parser.add_argument('--version', default='v5')
+    parser.add_argument('--version', default='v6')
     parser.add_argument('--refresh-manifest', action='store_true', help='刷新 tools/package-files.json 中非 payload 条目')
     parser.add_argument('--verify-repo', action='store_true', help='校验源码仓库清单、编码规则及 CRC 副本同步')
     args = parser.parse_args()
 
     if args.refresh_manifest:
-        total, updated = refresh_manifest(args.payload)
+        total, updated = refresh_manifest(args.payload, args.version)
         print(json.dumps({'refreshed': True, 'total_entries': total, 'non_payload_entries': updated}, ensure_ascii=False))
         if not args.verify_repo and args.payload is None:
             return
@@ -195,6 +197,9 @@ def main():
     catalog = json.loads((ROOT / 'tools/package-files.json').read_text('utf-8-sig'))
     if catalog['format'] != 1 or catalog['hash'] != 'SHA256':
         raise ValueError('文件清单格式无效')
+    if catalog.get('version') != args.version:
+        refresh_manifest(args.payload, args.version)
+        catalog = json.loads((ROOT / 'tools/package-files.json').read_text('utf-8-sig'))
     entries = {}
     for item in catalog['files']:
         relative = item['path']
@@ -225,6 +230,22 @@ def main():
     archive(source, sources, PACKAGE + '-源码')
     checksums = ''.join(f'{sha256(path)}  {path.name}\n' for path in (full, source))
     (output / 'SHA256SUMS.txt').write_text(checksums, 'ascii')
+    repository = 'xiayuan0817/Azur-Promilia-Chinese-Translation-Script'
+    update = {
+        'format': 1,
+        'repository': repository,
+        'manifest_sha256': sha256(ROOT / 'tools/package-files.json'),
+        'release': {
+            'tag_name': args.version,
+            'assets': [{
+                'name': full.name,
+                'size': full.stat().st_size,
+                'digest': 'sha256:' + sha256(full),
+                'browser_download_url': f'https://github.com/{repository}/releases/download/{args.version}/{full.name}',
+            }],
+        },
+    }
+    (output / 'update.json').write_text(json.dumps(update, ensure_ascii=False, indent=2) + '\n', 'utf-8')
     print(json.dumps({
         'archives': [str(full), str(source)],
         'package_files': len(entries),
