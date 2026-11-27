@@ -30,7 +30,7 @@ $config = @{
     PayloadSubdir          = 'payload/tw_game'
     SearchRelatives        = @('AzurPromilia_TC\AzurPromilia_TC_game', 'Games\AzurPromilia_TC\AzurPromilia_TC_game', 'Game\AzurPromilia_TC\AzurPromilia_TC_game', 'AzurPromilia_TC_game')
     HintRelatives          = @('AzurPromilia_TC_game', 'AzurPromilia_TC\AzurPromilia_TC_game')
-    MenuTitle              = '台服简体汉化（清单只读、等长、原 CRC）'
+    MenuTitle              = '台服简体汉化'
     NotFoundMsg            = '没有找到台服游戏。请把游戏文件夹拖到 BAT 上，或使用 -Hint 指定安装目录。'
 }
 
