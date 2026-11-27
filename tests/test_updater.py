@@ -9,6 +9,7 @@ import tempfile
 import time
 import unittest
 import zipfile
+from deployment_fixtures import text_asset
 
 ROOT = Path(__file__).resolve().parents[1]
 PS = Path(os.environ.get('SystemRoot', 'C:/Windows')) / 'System32/WindowsPowerShell/v1.0/powershell.exe'
@@ -273,6 +274,7 @@ foreach ($case in @(@('v4','v4','Current'), @('v4','v5','Available'), @('v5','v4
         game = self.base / 'mock game'
         (game / 'AzurPromilia_Data').mkdir(parents=True)
         self.put(game / 'AzurPromilia.exe', b'fixture')
+        self.put(game / 'AzurPromilia_Data/resources.assets', text_asset('tw'))
         paths = {key: str(self.base / ('missing-' + key))
                  for key in ('tw_game', 'jp_game', 'tw_launcher', 'jp_launcher')}
         paths['tw_game'] = str(game)
