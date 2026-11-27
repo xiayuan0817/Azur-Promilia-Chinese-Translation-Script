@@ -5,6 +5,8 @@ __pycache__/
 dist/
 payload/
 tools/logs/
+tools/update-state.json
+tools/.update.lock
 *.zip
 
 # 资源解码工具的本地输入、密钥与生成文件。
