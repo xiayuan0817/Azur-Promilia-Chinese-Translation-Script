@@ -8,6 +8,7 @@ tools/logs/
 tools/update-state.json
 tools/.update.lock
 *.zip
+/使用说明.txt
 
 # 资源解码工具的本地输入、密钥与生成文件。
 CRC工具/resource_decode/*.bin
