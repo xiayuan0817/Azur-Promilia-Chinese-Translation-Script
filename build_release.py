@@ -19,6 +19,7 @@ CORE_NON_PAYLOAD_PATHS = [
     'tools/jp-deblur-deployment.json',
     'tools/Apply-Launchers.ps1',
     'tools/Localization-Common.ps1',
+    'tools/Region-Identity.ps1',
     'tools/jp-deployment.json',
     'tools/launcher-deployment.json',
     'tools/Locate-Installations.ps1',
@@ -32,6 +33,7 @@ CORE_NON_PAYLOAD_PATHS = [
 SOURCE_SUFFIXES = {'.py', '.ps1', '.json', '.md', '.txt'}
 SOURCE_CACHE_DIRS = {'__pycache__', '.pytest_cache', 'logs', 'release_test',
                      'fixed_candidates', 'originals'}
+PACKAGE_SOURCES = {'tools/日服反虚化原说明.txt': 'tools/日服反虚化来源.md'}
 
 
 def source_tree_names(folder):
@@ -57,6 +59,15 @@ def child(root, relative):
     if not path.is_relative_to(root) or not path.is_file():
         raise ValueError(f'文件路径无效：{relative}')
     return path
+
+
+def package_source(relative, usage=None):
+    if relative == '使用说明.txt':
+        path = usage if usage is not None else ROOT / relative
+        if not path.is_file():
+            raise FileNotFoundError('构建完整包需通过 --usage 指定使用说明.txt')
+        return path.resolve(strict=True)
+    return child(ROOT, PACKAGE_SOURCES.get(relative, relative))
 
 
 def check_text_encoding(path, relative):
@@ -91,7 +102,7 @@ def archive(path, entries, prefix):
             tmp.unlink()
 
 
-def refresh_manifest(payload_root=None, version='v6'):
+def refresh_manifest(payload_root=None, version='v6.1', usage=None):
     manifest_path = ROOT / 'tools/package-files.json'
     catalog = json.loads(manifest_path.read_text('utf-8-sig'))
     if catalog.get('format') != 1 or catalog.get('hash') != 'SHA256':
@@ -105,14 +116,19 @@ def refresh_manifest(payload_root=None, version='v6'):
             raise ValueError(f'重复包内路径：{rel}')
         by_path[rel] = dict(item)
 
-    for rel in CORE_NON_PAYLOAD_PATHS:
-        src = child(ROOT, rel)
+    required = set(CORE_NON_PAYLOAD_PATHS) | {rel for rel in by_path if not rel.startswith('payload/')}
+    updated = 0
+    for rel in sorted(required):
+        if rel == '使用说明.txt' and usage is None and not (ROOT / rel).is_file():
+            continue
+        src = package_source(rel, usage)
         check_text_encoding(src, rel)
         by_path[rel] = {
             'path': rel,
             'size': src.stat().st_size,
             'sha256': sha256(src),
         }
+        updated += 1
 
     if payload_root is not None:
         for rel, item in list(by_path.items()):
@@ -127,10 +143,10 @@ def refresh_manifest(payload_root=None, version='v6'):
     catalog['files'] = [by_path[k] for k in sorted(by_path)]
     text = json.dumps(catalog, ensure_ascii=False, indent=2) + '\n'
     manifest_path.write_bytes(text.replace('\r\n', '\n').replace('\n', '\r\n').encode('utf-8'))
-    return len(catalog['files']), len(CORE_NON_PAYLOAD_PATHS)
+    return len(catalog['files']), updated
 
 
-def verify_repo():
+def verify_repo(usage=None):
     catalog = json.loads((ROOT / 'tools/package-files.json').read_text('utf-8-sig'))
     if catalog.get('format') != 1 or catalog.get('hash') != 'SHA256':
         raise ValueError('文件清单格式无效')
@@ -146,7 +162,9 @@ def verify_repo():
         if rel.startswith('payload/'):
             payload_count += 1
             continue
-        src = child(ROOT, rel)
+        if rel == '使用说明.txt' and usage is None and not (ROOT / rel).is_file():
+            continue
+        src = package_source(rel, usage)
         check_text_encoding(src, rel)
         if src.stat().st_size != item['size'] or sha256(src) != item['sha256']:
             raise ValueError(f'清单校验失败（请运行 python build_release.py --refresh-manifest）：{rel}')
@@ -171,20 +189,21 @@ def verify_repo():
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--payload', type=Path, help='完整包中的 payload 文件夹')
+    parser.add_argument('--usage', type=Path, help='仅用于完整包的使用说明 TXT')
     parser.add_argument('--output', type=Path, default=ROOT / 'dist')
-    parser.add_argument('--version', default='v6')
+    parser.add_argument('--version', default='v6.1')
     parser.add_argument('--refresh-manifest', action='store_true', help='刷新 tools/package-files.json 中非 payload 条目')
     parser.add_argument('--verify-repo', action='store_true', help='校验源码仓库清单、编码规则及 CRC 副本同步')
     args = parser.parse_args()
 
     if args.refresh_manifest:
-        total, updated = refresh_manifest(args.payload, args.version)
+        total, updated = refresh_manifest(args.payload, args.version, args.usage)
         print(json.dumps({'refreshed': True, 'total_entries': total, 'non_payload_entries': updated}, ensure_ascii=False))
         if not args.verify_repo and args.payload is None:
             return
 
     if args.verify_repo:
-        non_payload, payload = verify_repo()
+        non_payload, payload = verify_repo(args.usage)
         print(json.dumps({'repo_verified': True, 'non_payload_entries': non_payload, 'payload_entries': payload}, ensure_ascii=False))
         if args.payload is None:
             return
@@ -198,14 +217,14 @@ def main():
     if catalog['format'] != 1 or catalog['hash'] != 'SHA256':
         raise ValueError('文件清单格式无效')
     if catalog.get('version') != args.version:
-        refresh_manifest(args.payload, args.version)
+        refresh_manifest(args.payload, args.version, args.usage)
         catalog = json.loads((ROOT / 'tools/package-files.json').read_text('utf-8-sig'))
     entries = {}
     for item in catalog['files']:
         relative = item['path']
         if relative in entries:
             raise ValueError(f'重复包内路径：{relative}')
-        source = child(args.payload, relative[8:]) if relative.startswith('payload/') else child(ROOT, relative)
+        source = child(args.payload, relative[8:]) if relative.startswith('payload/') else package_source(relative, args.usage)
         if not relative.startswith('payload/'):
             check_text_encoding(source, relative)
         if source.stat().st_size != item['size'] or sha256(source) != item['sha256']:
@@ -213,7 +232,7 @@ def main():
         entries[relative] = source
     for name in ('tools/package-files.json', 'tools/安装路径.json'):
         entries[name] = child(ROOT, name)
-    source_names = ['.gitignore', 'LICENSE', 'README.md', '使用说明.txt', 'build_release.py', '双击运行.bat']
+    source_names = ['.gitignore', 'LICENSE', 'README.md', 'build_release.py', '双击运行.bat']
     if (ROOT / '.gitattributes').is_file():
         source_names.append('.gitattributes')
     for folder in ('tools', 'CRC工具', 'tests'):
