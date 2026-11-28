@@ -14,7 +14,7 @@
 
 完整包包含运行脚本和替换资源，无需另行准备国服包体。
 
-**仓库源码不包含游戏替换资源，直接下载仓库 ZIP 无法完成汉化。**
+**仓库当前分支已移除核心源码，请下载 Releases 中的完整包。**
 
 ## 操作方法
 
@@ -114,38 +114,9 @@ v6.1 对应台服资源 `3273850`，日服资源 `3273853`；两服各同步 6 �
 
 报错时请查看窗口提示；本次操作日志位于 `tools/logs`。
 
-## 源码目录
+## 仓库说明
 
-```text
-├─ 双击运行.bat        # 运行入口（支持拖拽安装目录）
-├─ tools/              # 统一菜单、路径查找、汉化与反虚化部署、校验及还原
-├─ CRC工具/
-│  ├─ crc/             # 台服资源处理与校验工具
-│  ├─ jp_crc/          # 日服资源处理与校验工具
-│  └─ resource_decode/ # 资源解码、语言表与字符串池工具
-├─ tests/              # 隔离自测套件（不触碰真实游戏目录）
-├─ build_release.py    # 清单校验/刷新与发布包构建脚本
-└─ README.md           # 项目说明
-```
-
-CRC 工具目录包含资源分析、构建、校验脚本及报告；部分脚本依赖原始资源、外部库和本地路径，不能直接作为独立程序运行。
-
-### 开发者校验与自测
-
-```bash
-python build_release.py --verify-repo
-python tests/run_tests.py
-```
-
-修改 `tools/` 下脚本后，可运行 `python build_release.py --refresh-manifest` 更新 `tools/package-files.json` 中的非载荷文件校验值（不改动 `payload/` 哈希）。
-
-构建完整包时，通过 `--usage` 指定本地使用说明：
-
-```bash
-python build_release.py --payload <payload目录> --usage <使用说明.txt路径> --version v6.1 --refresh-manifest --verify-repo
-```
-
-使用说明 TXT 仅放入完整包，不包含在源码中。构建时同时生成 `dist/update.json`。上传完整包后，将此文件同步到仓库根目录，供启动时检查版本。
+当前分支不再提供核心源码，已发布的完整包保留在 Releases。
 
 ## 问题反馈
 
